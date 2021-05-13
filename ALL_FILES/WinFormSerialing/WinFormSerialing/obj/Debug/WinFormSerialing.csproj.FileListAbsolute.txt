@@ -1,0 +1,10 @@
+C:\Users\Mecit\source\repos\WinFormSerialing\WinFormSerialing\bin\Debug\WinFormSerialing.exe.config
+C:\Users\Mecit\source\repos\WinFormSerialing\WinFormSerialing\bin\Debug\WinFormSerialing.exe
+C:\Users\Mecit\source\repos\WinFormSerialing\WinFormSerialing\bin\Debug\WinFormSerialing.pdb
+C:\Users\Mecit\source\repos\WinFormSerialing\WinFormSerialing\obj\Debug\WinFormSerialing.csprojAssemblyReference.cache
+C:\Users\Mecit\source\repos\WinFormSerialing\WinFormSerialing\obj\Debug\WinFormSerialing.Form1.resources
+C:\Users\Mecit\source\repos\WinFormSerialing\WinFormSerialing\obj\Debug\WinFormSerialing.Properties.Resources.resources
+C:\Users\Mecit\source\repos\WinFormSerialing\WinFormSerialing\obj\Debug\WinFormSerialing.csproj.GenerateResource.cache
+C:\Users\Mecit\source\repos\WinFormSerialing\WinFormSerialing\obj\Debug\WinFormSerialing.csproj.CoreCompileInputs.cache
+C:\Users\Mecit\source\repos\WinFormSerialing\WinFormSerialing\obj\Debug\WinFormSerialing.exe
+C:\Users\Mecit\source\repos\WinFormSerialing\WinFormSerialing\obj\Debug\WinFormSerialing.pdb
