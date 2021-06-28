@@ -1,0 +1,16 @@
+VAR OLAN KODDA, DOUBLE POINTER KULLANDIK, RETURN ETMIYORUZ ARTIK SUBSTR DE.
+FAKAT , waitforResponse içerisinde , char* define etmektense
+global olarka bir kere define edeyim diye düşündüm..(BU ŞEKILDE YAPILDI..)
+
+
+
+Bu klasörde yalnızca, waitforResponse içerisinde global olarka define edilme işlemleri yapılmıştır.
+
+
+Yeni Yapılmayı düşünülecek şey : 
+	Belki double point ettiğimiz için o memory'de yer kaplıyordur? ?
+		Loop dışında *test = NULL;  yapmak belki daha iyidir ?
+			Testlerini gerçekleştir.
+			
+Ayriyeten , double pointer'ı STATUS da da kullanabilirz?
+	
