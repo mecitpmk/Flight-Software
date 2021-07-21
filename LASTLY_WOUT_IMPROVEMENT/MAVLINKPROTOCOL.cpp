@@ -1,5 +1,6 @@
 #include "MAVLINKPROTOCOL.h"
-#include <string.h>
+//#include <string.h>
+//#include <WiFiUdp.h>
 /*/
     Written by : Mecit Pamuk
             Last Release Date : 2/11/2021 3:14 AM
@@ -42,8 +43,6 @@ DATACLASS::DATACLASS()
     pitch = 0; // Pitch
     yaw = 0; // Yaw
     roll = 0; // Roll
-    strcpy(FLIGHT_STATUS, "WAITING");
-    strcpy(VIDEO_TRANSMISSION_INFO, "HAYIR");
 }
 OLDDATACLASS::OLDDATACLASS()
 {
@@ -60,6 +59,7 @@ Communucation::Communucation()
     // Normally they will be deleted in there;b
     // elapsed_time = millis();
     *old_datas.altPtr = data.altitude;
+    
     
 }
 
@@ -78,7 +78,7 @@ void Communucation::readAltitude(void)
         *(old_datas.altPtr-1) = data.altitude;
         data.altitude = data.altitude -2;
         *old_datas.altPtr = data.altitude;
-        setNewStatus();
+        //setNewStatus();
     }
     else if (!manupulationFalling && !fixAltitude)
     {
@@ -89,9 +89,9 @@ void Communucation::readAltitude(void)
         *(old_datas.altPtr-1) = data.altitude;
         data.altitude = data.altitude+2;
         *old_datas.altPtr = data.altitude;
-        setNewStatus();
+        //setNewStatus();
     }
-    
+    setNewStatus();
     // data.altitude = data.altitude+1;
     // *old_datas.altPtr = data.altitude;
     // setNewStatus();
@@ -124,7 +124,7 @@ void Communucation::setNewStatus(void)
     else if (package_number != 1 && data.altitude <*(old_datas.altPtr-1) && seperatedBefore && data.altitude >= 190 && data.altitude <= 210 && !fixAltTrueBefore)
     {
         //      190 < x < 210 // 185
-        Serial.println("NOW ALTITUDE IS FIXING!!!!!!!!*********");
+        udp.println("NOW ALTITUDE IS FIXING!!!!!!!!*********");
         fixAltitude = true;
         fixAltTrueBefore = true;
         
@@ -143,7 +143,6 @@ void Communucation::setNewStatus(void)
     else if (package_number != 1 && seperatedBefore && data.altitude >= 0  && data.altitude < 5)
     {
         // AYrıştıysa ve  0<= Yükseklik < 5
-        
         strcpy(data.FLIGHT_STATUS,"RESCUE");
     }
 
@@ -187,7 +186,7 @@ void Communucation::releasePayload(void)
 {
     // Normally In  this function has servo motors settings.
     // It means that released.
-    Serial.println("PAYLOADSALINIYOR");
+    //udp.println("PAYLOADSALINIYOR");
     if (!releaseCommand)
     {
         //bidaha motoru aktive etmene gerek yok.
@@ -200,108 +199,46 @@ void Communucation::releasePayload(void)
 
 bool Communucation::waitforResponse(void)
 {
-    
-    subStr(Buffer, " ", 1,&Tag);
-    subStr(Buffer, " ", 2, &CMMND);
-    COMMAND = atoi(CMMND); 
-    // Serial.println(Tag);
-    // Serial.println(COMMAND);
-    if (!strcmp(Tag,"M"))
+    //Serial.print("The Buffer is ");
+    //Serial.println(Buffer);
+    subStr();
+    getProtocolStatus();
+    COMMAND = atoi(CMMND);  // get Command.
+    switch (HEADER)
     {
-        Serial.println("Missed Package Available Send Again!");
-        // memset(Buffer, '\0', BUF_SIZE); // Sonradan Eklendi
-        sendTelemetries();
-        
-    }
-    else if (!strcmp(Tag,"N"))
-    {
-        // IF N IS COMED IT MEANS THAT NO MISSED , NO VIDEO BINARY.
-            // Can Break the while loop
-
-        // Serial.println("Nothing missed!");
-        return true; // Return true for breaking loop
-        
-    }
-    else if (!strcmp(Tag,"VS"))
-    {
-        // Serial.println("wideo Size Came!");
-        
-        subStr(Buffer, " ", 3, &L);
-        LENGTH = atoi(L);
-        subStr(Buffer, " ", 4 ,  &VIDEO_B);
-        
-        VIDEO_SIZE = strtoul(VIDEO_B,NULL,10); // Video BinarySize to Unsigned Long
-        if (LENGTH == ((int)strlen(VIDEO_B))) // if 3.index Length == VideoBinary Length its okay correct Length! // uint8_t
-        {
-            // memset(Buffer, '\0', BUF_SIZE); // Sonradan Eklendi
-            // Serial.println("VS 1"); //EX: VS 0 4 1234
-            strcpy(SendingStringBuffer,"VS 1\n");
-        }
-        else
-        {
-            // memset(Buffer, '\0', BUF_SIZE); // Sonradan Eklendi
-            // Serial.println("VS 0");  // EX: VS 0 1 1111 (HATALI SIZE!)
-            strcpy(SendingStringBuffer,"VS 0\n");
-        }
-        // Serial.println(VIDEO_SIZE);
-        // Serial.println(LENGTH);
-    }
-    else if (!strcmp(Tag , "V"))
-    {
-        if (VIDEO_SIZE != 0) // Meaning that(else part) ground station you send me Video binary BUT
-                                // YOU DIDNT SEND ME VIDEO SIZE ! PLEASE SEND ME VS FIRST!
-        {
-            if (!videoTransferCompleted)
+        case MISSED_DATA_AV_H:
+            sendTelemetries(); // SEND TELEMETRIES AGAIN.
+            break;
+        case NOTHING_MISSED_H:
+            break; // DO NOTHING
+        case VIDEO_SIZE_H:
+            Serial.print("V_S Buffer : ");
+            Serial.println(Buffer);
+            VIDEO_SIZE = strtoul(Buffer, NULL, 10); // Video BinarySize to Unsigned Long
+            strcpy(SendingStringBuffer, "VS 1\n");
+            Serial.print("Video Size Reached.. ");
+            Serial.println(VIDEO_SIZE);
+            break;
+        case VIDEO_DATA_H:
+            REACHED_SIZE += (int)strlen(Buffer);
+            if (REACHED_SIZE >= VIDEO_SIZE)
             {
-                // Serial.println("Wideo CAME!");
-                
-                subStr(Buffer, " ", 3 , &CHCK_S);
-                CHCKSM = atoi(CHCK_S); // uint8_t // BUNU GLOBALDE OLUŞTUR HER SEFERIDNE MEMORY'DE OLUŞTURMASIN.
-                subStr(Buffer," ",4, &CURRENT_VIDEO_BIN); 
-                VIDEO_BIN_LENGHT = strlen(CURRENT_VIDEO_BIN); // uint8_t  // BUNU GLOBALDE OLUŞTUR HER SEFERIDNE MEMORY'DE OLUŞTURMASIN.
-                // Serial.println(CURRENT_VIDEO_BIN);
-                // Serial.println(CHCKSM);
-                // Serial.println(strlen(CURRENT_VIDEO_BIN));
-                if (CHCKSM == VIDEO_BIN_LENGHT)
-                {
-                    REACHED_SIZE += VIDEO_BIN_LENGHT; // Gelen byte kadar ReachedSIZE Arttirildi.
-                    if (REACHED_SIZE == VIDEO_SIZE || REACHED_SIZE >= VIDEO_SIZE)
-                    {
-                        Serial.println("ALL VIDEO SIZE REACHED!");
-                        strcpy(SendingStringBuffer,"V 3\n");
-                        // Serial.println("V 3");
-                        videoTransferCompleted = true;
-                        // Telemetri'ye statü okey diyecegiz burada.(VideoStatus)
-                        strcpy(data.VIDEO_TRANSMISSION_INFO,"EVET"); //Belki bu gondermeye baslandigindan itibaren ki
-                                                                        //Bilgidir Onu konuş danış.
-                    }
-                    else
-                    {
-                        // memset(Buffer, '\0', BUF_SIZE); // sonradan eklendi.
-                        // Serial.println("V 1");
-                        strcpy(SendingStringBuffer,"V 1\n");
-                    }
-                }
-                else 
-                {
-                    // memset(Buffer, '\0', BUF_SIZE); // Sonradan Eklendi.
-                    // Serial.println("V 0");
-                    strcpy(SendingStringBuffer,"V 0\n");
-                }
-                
-                
+                strcpy(SendingStringBuffer, "V 3\n");
             }
             else
             {
-                Serial.println("WideoCOMPLETEDALLRDY?");
+                strcpy(SendingStringBuffer, "V 1\n");
+                Serial.println("V1");
+                //Serial.println((uint16_t)strlen(Buffer));
             }
-        }
-        else
-        {
-            // memset(Buffer, '\0', BUF_SIZE); // Sonradan Eklendi
-            // Serial.println("VS 0");
-            strcpy(SendingStringBuffer,"VS 0\n");
-        }
+            break;  
+        case ERROR_H : 
+            Serial.println("ERROR HAPPENED!");
+            break;
+        default:
+            Serial.println("Default Case ?");
+            break;
+
     }
     return false;
 }
@@ -334,22 +271,22 @@ void Communucation::manualmotorActivation(bool fortesting)
         bool tenSecond = false;
         while (millis() - motorElapsedTime <= testMotorsInterval)
         {
-            //Serial.println("MANUALMOTOR10");
+            //udp.println("MANUALMOTOR10");
             if (!tenSecond)
             {
-                Serial.println("manualMotor10"); // THIS IS FOR NOT PRINTING ALL THE TIME
+                //udp.println("manualMotor10"); // THIS IS FOR NOT PRINTING ALL THE TIME
                 tenSecond = true;
             }
             getDatas();
             
             // Motors Run for 10 seconds.
         }
-        Serial.println("10ManualMotorISEND!!!");
+        //udp.println("10ManualMotorISEND!!!");
     }
     else
     {
         // MOTOR RUN ALWAYS WITH CONSTANT SPEED [ITS NOT FOR TESTING.]
-        Serial.println("MANUALMOTALWAYS");
+        //udp.println("MANUALMOTALWAYS");
     }
     
 }
@@ -361,7 +298,7 @@ void Communucation::getDatas(void)
     
     if (millis() - oneHZ >= oneHzInterval)
     {
-        //Serial.begin(115200);
+        //udp.begin(115200);
         oneHZ = millis();
         beforeReading = millis();
         COMMAND = 0;
@@ -374,9 +311,9 @@ void Communucation::getDatas(void)
         readTurnNumber();
         
         
-        
+        udp.beginPacket(udpAddress, udpPort);
         sendTelemetries();
-        
+        udp.endPacket();
      
         memset(Buffer, '\0', sizeof(Buffer));
         //memset(SendingStringBuffer, '\0', sizeof(SendingStringBuffer));
@@ -388,72 +325,49 @@ void Communucation::getDatas(void)
         // uint16_t INTERV = 1000-RemainTime;
         INTERV = 1000-RemainTime;
 
-        clearSerialBuffer(); // ADDED NEWLY
+        //clearSerialBuffer(); // ADDED NEWLY
 
-        Serial.write("I ");Serial.println(INTERV);
-        
+        //udp.write("I ");udp.println(INTERV);
+        udp.beginPacket(udpAddress, udpPort);
+        udp.printf("I %d", INTERV);
+        udp.endPacket();
         //char incomingDataChar;
         
         while (millis() - afterReading < INTERV)
         {   
-            // delay(1);
-            if (Serial.available() > 0)
+            udp.parsePacket();
+            int LenPackage = udp.read(Buffer, 500);
+            if (LenPackage > 0)
             {
-                // delay(10); // 10
-                while (Serial.available() > 0 && !Readed)
-                {
-                    //delayMicroseconds(190); // 50 du galıba
-                    incomingDataChar = Serial.read();
-                    if (incomingDataChar == StartMark)
-                    {
-                        isReading = true;
-                        bufferIndex = 0;
-                    }
-                    else if (isReading)
-                    {
-                        if (incomingDataChar != EndMark)
-                        {
-                            Buffer[bufferIndex++] =  incomingDataChar;
-                        }
-                        else
-                        {
-                            Buffer[bufferIndex] = '\0';
-                            // strcpy(ReserveBuffer,Buffer);
-                            // memset(Buffer,'\0',BUF_SIZE);
-                            isReading = false;
-                            Readed = true;
-                            break; // LAST TIME 1MB ULASTIKTAN SONRA BU BREAK I EKLEDIM.
-                        }
-                    }
-                }
+                Readed = true;
+                
             }            
 
             if (Readed)
             {
                 Readed = false;
                 /*bool CONTINUE = waitforResponse(Buffer);*/
+
                 waitforResponse();
                 // memset(ReserveBuffer, '\0', BUF_SIZE);
                 memset(Buffer, '\0', sizeof(Buffer)); // Reservebuffer ı disable ettigimiz icin bunu boyle yapmak zorunda kaldım.
-                clearSerialBuffer(); // Added Newly
-                if (SendingStringBuffer[0] != '\0') Serial.write(SendingStringBuffer,strlen(SendingStringBuffer));
-                //memset(SendingStringBuffer,'\0',sizeof(SendingStringBuffer));
+                //clearSerialBuffer(); // Added Newly
+                udp.beginPacket(udpAddress, udpPort);
+                if (SendingStringBuffer[0] != '\0') udp.write((const uint8_t *) SendingStringBuffer,strlen(SendingStringBuffer)); //we can use udp.printf %s  ???
+                udp.endPacket();
                 SendingStringBuffer[0] = '\0';
-                Serial.flush();
-                // if (CONTINUE)
-                // {
-                //     break;
-                // }
             }
         }
-        Serial.write("E\n"); // communucation ENDED Message.
-        clearSerialBuffer(); // Added Newly
+        udp.beginPacket(udpAddress, udpPort);
+        udp.printf("E\n"); // communucation ENDED Message.
+        udp.endPacket();
+        //clearSerialBuffer(); // Added Newly
         package_number +=1;
         if (COMMAND != 0)
         {
             manualServiceCheck();
         }
-        //Serial.end();
+        //udp.end();
         
         
     }
@@ -464,33 +378,14 @@ void Communucation::mainLp(void)
 
     if (!systemActivated)
     {
-        static char STARTS_BUF[2];
-        static uint8_t START_BUF_IDX = 0;
+        static char STARTS_BUF[10];
         static bool START_READED = false;
-        static bool START_PROCESS = false;
-        if (Serial.available() > 0)
+        udp.parsePacket();
+        int LenBuff = udp.read(STARTS_BUF, 10);
+
+        if (LenBuff > 0)
         {
-            while (Serial.available() > 0 && !START_READED)
-            {
-                char R = Serial.read();
-                if (R == StartMark)
-                {
-                    START_PROCESS = true;
-                }
-                else if (START_PROCESS)
-                {
-                    if (R != EndMark)
-                    {
-                        STARTS_BUF[START_BUF_IDX++] = R;
-                    }
-                    else
-                    {
-                        STARTS_BUF[START_BUF_IDX] = '\0';
-                        START_READED = true;
-                        START_PROCESS = false;
-                    }
-                }    
-            }
+            START_READED = true;
         }
         if (START_READED)
         {
@@ -510,10 +405,10 @@ void Communucation::mainLp(void)
             while (millis() - altFix <= testMotorsInterval)
             {
                 // MotorSPEED INCREASE IN setNewStatus Because Time will be elasped until comes here...
-                Serial.println("!!!! ! !! IRTIFA SABIT !!!!!!! !!! !!!");
+                //udp.println("!!!! ! !! IRTIFA SABIT !!!!!!! !!! !!!");
                 getDatas();
             }
-            Serial.println("-------------- IRTIFA SABITLEME TAMAMLANDI.-------------");
+            //udp.println("-------------- IRTIFA SABITLEME TAMAMLANDI.-------------");
             fixAltitude = false;
             // Set Motor Speed To Normal IN RIGHT HERE!!.
         }
@@ -521,44 +416,63 @@ void Communucation::mainLp(void)
 }
 
 
-void Communucation::subStr (const char* str, const char *delim, const uint8_t index , char **PARAM_CHAR) 
-{
-    char* act ;
-    char* sub = NULL;
-    char *ptr;
-    static char copy[BUF_SIZE];
-    uint8_t i;
-    // Since strtok consumes the first arg, make a copy
-    strcpy(copy, str);
 
-    for (i = 1, act = copy; i <= index; i++, act = NULL) {
-        //Serial.print(".");
-        sub = strtok_r(act, delim, &ptr);
-        if (sub == NULL) break;
+void Communucation::subStr (void) 
+{
+    char* PT = Buffer;
+    char* p = strtok_r(Buffer, DELIM,&PT); // DELIM GLOBALLY DEFINED.
+    strcpy(TAG, p);
+    uint8_t ct = 0;
+    while (p != NULL)
+    {
+        if (ct == 3)
+        {
+            strcpy(Buffer, p);
+            break;
+        }
+        switch (ct)
+        {
+        case 1:
+            strcpy(CMMND, p);
+            Serial.print("C_CPY,");
+            break;
+        case 2:
+            strcpy(VIDEO_LNG, p);
+            Serial.println("V_L_CP");
+            break;
+        default:
+            break;
+        }
+        p = strtok_r(NULL, DELIM,&PT); // 
+        ct++;
     }
-    *PARAM_CHAR = sub;
+    
 }
 
+void Communucation::getProtocolStatus(void)
+{
+    if (!strcmp(TAG, "N")) HEADER = NOTHING_MISSED_H;
+    else if (!strcmp(TAG, "M")) HEADER = MISSED_DATA_AV_H;
+    else if (!strcmp(TAG, "VS")) HEADER = VIDEO_SIZE_H;
+    else if (!strcmp(TAG, "V")) HEADER = VIDEO_DATA_H;
+    else HEADER = ERROR_H;
+}
+void Communucation::stringCopies(void)
+{
+    strcpy(data.FLIGHT_STATUS, "WAITING");
+    strcpy(data.VIDEO_TRANSMISSION_INFO, "HAYIR");
+}
 void Communucation::sendTelemetries(void)
 {
 
-    Serial.write("<");
-    Serial.print(TEAM_ID);Serial.write(",");Serial.print(package_number);Serial.write(",");
-    Serial.print(data.pressure);Serial.write(",");Serial.print(data.altitude);Serial.write(",");
-    Serial.print(data.temperature);Serial.write(",");Serial.print(data.FLIGHT_STATUS);Serial.write(",");
-    Serial.print(data.pitch);Serial.write(",");Serial.print(data.roll);Serial.write(",");
-    Serial.print(data.yaw);Serial.write(",");Serial.print(data.turn_number);Serial.write(",");
-    Serial.print(data.VIDEO_TRANSMISSION_INFO);
-    Serial.write(">\n");
+    udp.printf("<");
+    udp.printf("%d",TEAM_ID);udp.printf(",");udp.printf("%d",package_number);udp.printf(",");
+    udp.printf("%.2f",data.pressure);udp.printf(",");udp.printf("%.2f",data.altitude);udp.printf(",");
+    udp.printf("%.2f",data.temperature);udp.printf(",");udp.printf("%s",data.FLIGHT_STATUS);udp.printf(",");
+    udp.printf("%.2f",data.pitch);udp.printf(",");udp.printf("%.2f",data.roll);udp.printf(",");
+    udp.printf("%.2f",data.yaw);udp.printf(",");udp.printf("%.2f", data.turn_number);udp.printf(",");
+    udp.printf("%s",data.VIDEO_TRANSMISSION_INFO);
+    udp.printf(">\n");
 
 
-}
-
-
-void Communucation::clearSerialBuffer(void)
-{
-    while (Serial.available() > 0)
-    {
-        Serial.read();
-    }
 }
