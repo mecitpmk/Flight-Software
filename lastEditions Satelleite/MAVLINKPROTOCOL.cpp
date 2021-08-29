@@ -1,5 +1,10 @@
 #include "MAVLINKPROTOCOL.h"
 #include "SENSORS.h"
+#include "STORAGE.h"
+#include "FS.h"
+
+#define MAX_TELEMETRY_LENGTH 2048 // 2kb is probably too much but anyways. I don't wanna fail because of this in tests.
+
 //#include <string.h>
 //#include <WiFiUdp.h>
 /*/
@@ -335,7 +340,9 @@ void Communucation::getDatas(void)
         udp.beginPacket(udpAddress, udpPort);
         sendTelemetries();
         udp.endPacket();
-     
+
+        saveTelemetries();
+        
         memset(Buffer, '\0', sizeof(Buffer));
         SendingStringBuffer[0] = '\0';
 
@@ -378,9 +385,6 @@ void Communucation::getDatas(void)
         {
             manualServiceCheck();
         }
-        
-        
-        
     }
 }
 
@@ -512,4 +516,16 @@ void Communucation::sendTelemetries(void)
     // udp.printf("%s",data.VIDEO_TRANSMISSION_INFO);
     // udp.printf(">\n");
 
+}
+
+void Communucation::saveTelemetries(void){
+  char telemetryBuffer[MAX_TELEMETRY_LENGTH];
+  // Some magic badass telemetry constructor. I now re-evalute my career choices.
+  sprintf(telemetryBuffer,"<%d,%d,%02d/%02d/%02d %02d:%02d:%02d,%.2f,%.2f,%.2f,%.2f,%.1f,%.2f,%.1f,%.2f,%s,%.2f,%.2f,%.2f,%.2f,%s>",
+  TEAM_ID,package_number,sensors.gpsData.day,sensors.gpsData.month,sensors.gpsData.year,sensors.gpsData.hour,sensors.gpsData.minute,sensors.gpsData.second,
+  sensors.bmpData.pressure,sensors.bmpData.altitude,abs(sensors.prevAltitude - sensors.bmpData.altitude),sensors.bmpData.temperature,data.batteryVoltage,
+  sensors.gpsData.latitude,sensors.gpsData.longitude,sensors.gpsData.altitude,data.FLIGHT_STATUS,sensors.mpuData.pitch,sensors.mpuData.roll,sensors.mpuData.yaw,
+  data.turn_number,data.VIDEO_TRANSMISSION_INFO
+  );
+  storage.writeTelemetry(SD,telemetryBuffer);
 }

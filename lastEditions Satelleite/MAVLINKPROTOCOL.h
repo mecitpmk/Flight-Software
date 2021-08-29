@@ -5,6 +5,7 @@
 #include <string.h>
 #include <WiFiUdp.h>
 #include "SENSORS.h"
+#include "STORAGE.h"
 #include <ESP32Servo.h>
 
 class DATACLASS
@@ -55,6 +56,7 @@ class Communucation
 {
     public:
         SENSORS sensors = SENSORS();
+        STORAGE storage = STORAGE();
         uint16_t package_number = 1; // Paket Numarası Normal counter gibi..
         const uint16_t TEAM_ID = 29779; // Takım Numarası
 
@@ -162,7 +164,7 @@ class Communucation
         void subStr (void); // STR COMES FROM BUFFER ! .
         void sendTelemetries(void);
         void getProtocolStatus(void);
-
+        void saveTelemetries(void);
         
         
 
