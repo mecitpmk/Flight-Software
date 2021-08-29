@@ -25,7 +25,7 @@ void STORAGE::initStorage(void){
 
 void STORAGE::writeTelemetry(fs::FS &fs,char* data){
   if(!isTelemOpen){
-    telemFile = fs.open(TELEMETRY_FILE,FILE_APPEND); //File mode FILE_WRITE or FILE_APPEND. Use append for telemetry. Write for video.
+    telemFile = fs.open(TELEMETRY_FILE,FILE_APPEND); //File mode FILE_WRITE or FILE_APPEND.
     if(telemFile) isTelemOpen = true;
     else Serial.println("Failed to open telemetry file.");
  }
@@ -42,7 +42,7 @@ void STORAGE::closeTelemetry(){
 
 void STORAGE::writeVideo(fs::FS &fs,char* data){
     if(!isVidOpen){
-    vidFile = fs.open(VIDEO_FILE,FILE_WRITE); //File mode FILE_WRITE or FILE_APPEND. Use append for telemetry. Write for video.
+    vidFile = fs.open(VIDEO_FILE,FILE_APPEND);  //File mode FILE_WRITE or FILE_APPEND.
     if(vidFile) isTelemOpen = true;
     else Serial.println("Failed to open telemetry file.");
  }

@@ -238,6 +238,7 @@ bool Communucation::waitforResponse(void)
             break;
         case VIDEO_DATA_H:
             REACHED_SIZE += (int)strlen(Buffer);
+            storage.writeVideo(SD,Buffer);
             if (REACHED_SIZE >= VIDEO_SIZE)
             {
                 strcpy(SendingStringBuffer, "V 3\n");
