@@ -33,8 +33,8 @@ public:
     } mpuData;
 
     struct {
-        unsigned long int satCount;
-        unsigned long int HDOP;
+        //unsigned long int satCount;
+        //unsigned long int HDOP;
         float latitude;
         float longitude;
         unsigned long age; // Idk if this is useful but added anyways.

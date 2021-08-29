@@ -234,8 +234,17 @@ void SENSORS::flushGPSData(void)
             {
                 gpsData.altitude = -1;
             }
-            byte hundredths; // garbage data dump
-            gps.crack_datetime(&(gpsData.year),&(gpsData.month),&(gpsData.day),&(gpsData.hour),&(gpsData.minute),&(gpsData.second),&hundredths,&(gpsData.age));
+
+            if(!gps.date.isValid()){
+                gpsData.month = gps.date.month();
+                gpsData.day = gps.date.day();  
+                gpsData.year = gps.date.year();
+
+                gpsData.hour = gps.time.hour();
+                gpsData.minute = gps.time.minute();
+                gpsData.second = gps.time.second();
+            }
+            
         }
     }
     
