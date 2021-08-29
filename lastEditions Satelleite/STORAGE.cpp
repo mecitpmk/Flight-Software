@@ -30,6 +30,7 @@ void STORAGE::writeTelemetry(fs::FS &fs,char* data){
     else Serial.println("Failed to open telemetry file.");
  }
   if(isTelemOpen) telemFile.print(data);
+  closeTelemetry();
 }
 
 void STORAGE::closeTelemetry(){
@@ -45,7 +46,8 @@ void STORAGE::writeVideo(fs::FS &fs,char* data){
     if(vidFile) isTelemOpen = true;
     else Serial.println("Failed to open telemetry file.");
  }
-  if(isTelemOpen) vidFile.print(data);
+  if(isVidOpen) vidFile.print(data);
+  closeVideo();
 }
 
 void STORAGE::closeVideo(){
