@@ -11,7 +11,7 @@ void setup() {
   Serial.begin(115200);
   c.stringCopies();
   connectToWiFi(networkName, networkPswd);
-
+  c.sensors.initAllSensor();
 }
 
 void loop() {
