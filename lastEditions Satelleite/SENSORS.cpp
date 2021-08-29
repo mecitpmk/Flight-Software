@@ -81,6 +81,7 @@ void SENSORS::flushBMPData(void)
 
     if(bmp.getSensorData(&sensorData, true)){ // Read data into the struct, and pass that data to global storage.
         bmpData.pressure = (float) sensorData.pressure;
+        prevAltitude = bmpData.altitude;
         bmpData.altitude = (float) sensorData.altitude;
         bmpData.temperature = (float) sensorData.temperature;
     }else {

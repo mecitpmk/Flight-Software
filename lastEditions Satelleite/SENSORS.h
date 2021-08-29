@@ -24,6 +24,8 @@ public:
         float temperature;
     } bmpData;
 
+    float prevAltitude;
+
     struct {
         float roll;
         float pitch;
