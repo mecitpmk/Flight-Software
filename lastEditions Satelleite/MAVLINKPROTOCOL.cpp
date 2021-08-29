@@ -489,6 +489,7 @@ void Communucation::sendTelemetries(void)
 
     udp.printf("<");
     udp.printf("%d",TEAM_ID);udp.printf(",");udp.printf("%d",package_number);udp.printf(",");
+    udp.printf("%02d/%02d/%02d %02d:%02d:%02d",gpsData.day,gpsData.month,gpsData.year,gpsData.hour,gpsData.minute,gpsData.second);udp.printf(",");
     udp.printf("%.2f",sensors.bmpData.pressure);udp.printf(",");udp.printf("%.2f",sensors.bmpData.altitude);udp.printf(",");
     udp.printf("%.2f",sensors.bmpData.temperature);udp.printf(",");udp.printf("%.1f",data.batteryVoltage);udp.printf(",");
     udp.printf("%.2f",sensors.gpsData.latitude);udp.printf(",");udp.printf("%.1f",sensors.gpsData.longitude);udp.printf(",");

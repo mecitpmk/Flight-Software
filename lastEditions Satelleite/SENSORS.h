@@ -37,7 +37,8 @@ public:
         float longitude;
         unsigned long age; // Idk if this is useful but added anyways.
         float altitude;
-        byte hour,minute,second;
+        int year;
+        byte month,day,hour,minute,second;
         } gpsData;
     SENSORS();
     void initAllSensor(void);

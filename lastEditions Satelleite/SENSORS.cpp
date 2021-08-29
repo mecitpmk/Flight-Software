@@ -233,7 +233,8 @@ void SENSORS::flushGPSData(void)
             {
                 gpsData.altitude = -1;
             }
-            
+            byte hundredths; // garbage data dump
+            gps.crack_datetime(&(gpsData.year),&(gpsData.month),&(gpsData.day),&(gpsData.hour),&(gpsData.minute),&(gpsData.second),&hundredths,&(gpsData.age));
         }
     }
     
