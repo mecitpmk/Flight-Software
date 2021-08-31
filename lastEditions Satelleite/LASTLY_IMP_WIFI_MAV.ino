@@ -12,6 +12,8 @@ void setup() {
   c.stringCopies();
   connectToWiFi(networkName, networkPswd);
   c.sensors.initAllSensor();
+  c.storage.initStorage();
+
 }
 
 void loop() {

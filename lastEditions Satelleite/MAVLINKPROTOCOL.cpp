@@ -3,7 +3,7 @@
 #include "STORAGE.h"
 #include "FS.h"
 
-#define MAX_TELEMETRY_LENGTH 2048 // 2kb is probably too much but anyways. I don't wanna fail because of this in tests.
+
 
 //#include <string.h>
 //#include <WiFiUdp.h>
@@ -133,7 +133,7 @@ void Communucation::setNewStatus(void)
         udp.println("NOW ALTITUDE IS FIXING!!!!!!!!*********");
         fixAltitude = true;
         fixAltTrueBefore = true;
-        
+        /
         strcpy(data.FLIGHT_STATUS,"FIXEDALT");
         // Burada hemen motora güç ver çünkü diğer yerlere gidene kadar time elapsed olacak.
     }
@@ -193,16 +193,7 @@ void Communucation::readYaw(void)
 
 void Communucation::releasePayload(void)
 {
-    // Normally In  this function has servo motors settings.
-    // It means that released.
-    //udp.printf("PAYLOADSALINIYOR");
-    // if (!releaseCommand)
-    // {
-    //     //bidaha motoru aktive etmene gerek yok.
-    //     releaseCommand = true;
-    //     // Servo Settings..
-    //     return;
-    // }
+    
     unsigned long manualReleaseTimer = millis();
     ESC.write(50);
     while (millis() - manualReleaseTimer < 50)
@@ -325,15 +316,12 @@ void Communucation::getDatas(void)
 
         //FIRST flush sensord data so we have recent data.
         sensors.flushBMPData();
-        // readAltitude();
-        // readPressure();
-        // readTemperature();
+        // After this check Condition about isReleasing or something...
+        
 
         sensors.flushMPUData(); // Another flush of sensors.
-        // readPitch();
-        // readRoll();
-        // readYaw();
-        // readTurnNumber(); // WTH is turn number, do we calculate this??
+        // Read turn number?
+
 
         sensors.flushGPSData();
         
@@ -507,20 +495,10 @@ void Communucation::sendTelemetries(void)
     udp.printf(">\n");
 
 
-    // udp.printf("<");
-    // udp.printf("%d",TEAM_ID);udp.printf(",");udp.printf("%d",package_number);udp.printf(",");
-    // udp.printf("%.2f",data.pressure);udp.printf(",");udp.printf("%.2f",data.altitude);udp.printf(",");
-    // udp.printf("%.2f",data.temperature);udp.printf(",");udp.printf("%.1f",data.batteryVoltage);udp.printf(",");
-    // udp.printf("%s",data.FLIGHT_STATUS);udp.printf(",");
-    // udp.printf("%.2f",data.pitch);udp.printf(",");udp.printf("%.2f",data.roll);udp.printf(",");
-    // udp.printf("%.2f",data.yaw);udp.printf(",");udp.printf("%.2f", data.turn_number);udp.printf(",");
-    // udp.printf("%s",data.VIDEO_TRANSMISSION_INFO);
-    // udp.printf(">\n");
-
+    
 }
 
 void Communucation::saveTelemetries(void){
-  char telemetryBuffer[MAX_TELEMETRY_LENGTH];
   // Some magic badass telemetry constructor. I now re-evalute my career choices.
   sprintf(telemetryBuffer,"<%d,%d,%02d/%02d/%02d %02d:%02d:%02d,%.2f,%.2f,%.2f,%.2f,%.1f,%.2f,%.1f,%.2f,%s,%.2f,%.2f,%.2f,%.2f,%s>",
   TEAM_ID,package_number,sensors.gpsData.day,sensors.gpsData.month,sensors.gpsData.year,sensors.gpsData.hour,sensors.gpsData.minute,sensors.gpsData.second,

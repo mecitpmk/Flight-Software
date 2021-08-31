@@ -11,13 +11,19 @@ STORAGE::STORAGE()
 
 void STORAGE::initStorage(void){
   
-  if(!SD.begin()){
+  if(!SD.begin(5))
+  {
     Serial.println("SD Card Mount Failed");
-    return;
+  }
+  else
+  {
+    Serial.println("SD CARD IS READY..");
+  }
   }
   uint8_t cardType = SD.cardType();
 
-  if(cardType == CARD_NONE){
+  if(cardType == CARD_NONE)
+  {
    Serial.println("No SD card attached");
    return;
   }

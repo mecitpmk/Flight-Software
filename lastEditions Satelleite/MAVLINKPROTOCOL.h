@@ -8,6 +8,8 @@
 #include "STORAGE.h"
 #include <ESP32Servo.h>
 
+#define MAX_TELEMETRY_LENGTH 2048 // 2kb is probably too much but anyways. I don't wanna fail because of this in tests
+
 class DATACLASS
 {
     public:
@@ -129,6 +131,7 @@ class Communucation
         Servo ESC; // create servo object to control the ESC
         
         const int pwmPin = 4;
+        char telemetryBuffer[MAX_TELEMETRY_LENGTH];
 
 
         WiFiUDP udp;

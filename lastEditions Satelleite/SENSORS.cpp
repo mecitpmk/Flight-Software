@@ -6,28 +6,16 @@ SENSORS::SENSORS()
     bmpData = {0};
     mpuData = {0};
     gpsData = {0};
-    // Initialize BMP388
 
-    // bmp.init();
-    // bmp.setSensorInForcedMode(BMP3_OVERSAMPLING_16X, BMP3_OVERSAMPLING_2X, BMP3_IIR_FILTER_COEFF_3); // Default sampling settings. Might wanna change later on.
-    // // Initalize MPU
-    // mpu.setup(0x68/*I2C address, can be figured out with an i2c scan*/);
-    // mpu.calibrateAccelGyro();
-    // mpu.calibrateMag();
-    // //Initialize GPS
-    // // Serial2.begin(9600/*GPS Data Rate*/,SERIAL_8N1, 15 /*RX*/,12/*TX*/); //Start GPS Software Serial
-    
-    // // Initialize data structs with 0
-    // bmpData = {0};
-    // mpuData = {0};
-    // gpsData = {0};
 }
 
 void SENSORS::initAllSensor()
 {
 
     bmp.init();
-    bmp.setSensorInForcedMode(BMP3_OVERSAMPLING_16X, BMP3_OVERSAMPLING_2X, BMP3_IIR_FILTER_COEFF_3); // Default sampling settings. Might wanna change later on.
+    bmp.setSensorInNormalMode(BMP3_NO_OVERSAMPLING,BMP3_OVERSAMPLING_8X,BMP3_IIR_FILTER_COEFF_3, BMP3_ODR_50_HZ,false);
+                                /*  Or we can use x16 Pressure , x2 Temperature IIR FILTER 4X , 25 HZ
+                                    BMP3_OVERSAMPLING_2X ,  BMP3_OVERSAMPLING_16X  , BMP3_IIR_FILTER_COEFF_15  , BMP3_ODR_25_HZ  */
     // Initalize MPU
     
     WIRE_PORT.begin();
@@ -62,9 +50,7 @@ void SENSORS::initAllSensor()
 
     // Reset FIFO
     success &= (myICM.resetFIFO() == ICM_20948_Stat_Ok);
-                //Initialize GPS
-                // Serial2.begin(9600/*GPS Data Rate*/,SERIAL_8N1, 15 /*RX*/,12/*TX*/); //Start GPS Software Serial
-                // Initialize data structs with 0
+
     if (success)
     {
         Serial.println("DMP ENABLED...");
@@ -92,61 +78,24 @@ void SENSORS::flushBMPData(void)
 
 void SENSORS::flushMPUData(void)
 {
-    // if(mpu.update()){
-    //     mpuData.roll = mpu.getRoll();
-    //     mpuData.pitch = mpu.getPitch();
-    //     mpuData.yaw = mpu.getYaw();
-    // }else{
-    //     Serial.println("SOMEHING WRONG IN mpuuuu!!");
-    //     // Sensor error occurred!
-    // }
-    
-    // while (true)
-    // {
-    //     if (myICM.dataReady())
-    //     {
-    //         myICM.getAGMT();
-    //         mpuData.roll  = myICM.gyrX();
-    //         mpuData.pitch = myICM.gyrY();
-    //         mpuData.yaw   = myICM.gyrZ(); 
-    //         break;
-    //     }
-    // }
+
     icm_20948_DMP_data_t data;
     myICM.readDMPdataFromFIFO(&data);
     while (true)
     {
         if ((myICM.status == ICM_20948_Stat_Ok) || (myICM.status == ICM_20948_Stat_FIFOMoreDataAvail)) // Was valid data available?
         {
-            //SERIAL_PORT.print(F("Received data! Header: 0x")); // Print the header in HEX so we can see what data is arriving in the FIFO
-            //if ( data.header < 0x1000) SERIAL_PORT.print( "0" ); // Pad the zeros
-            //if ( data.header < 0x100) SERIAL_PORT.print( "0" );
-            //if ( data.header < 0x10) SERIAL_PORT.print( "0" );
-            //SERIAL_PORT.println( data.header, HEX );
+            
 
             if ((data.header & DMP_header_bitmap_Quat6) > 0) // We have asked for GRV data so we should receive Quat6
             {
-                // Q0 value is computed from this equation: Q0^2 + Q1^2 + Q2^2 + Q3^2 = 1.
-                // In case of drift, the sum will not add to 1, therefore, quaternion data need to be corrected with right bias values.
-                // The quaternion data is scaled by 2^30.
-
-                //SERIAL_PORT.printf("Quat6 data is: Q1:%ld Q2:%ld Q3:%ld\r\n", data.Quat6.Data.Q1, data.Quat6.Data.Q2, data.Quat6.Data.Q3);
-
+               
                 // Scale to +/- 1
                 double q1 = ((double)data.Quat6.Data.Q1) / 1073741824.0; // Convert to double. Divide by 2^30
                 double q2 = ((double)data.Quat6.Data.Q2) / 1073741824.0; // Convert to double. Divide by 2^30
                 double q3 = ((double)data.Quat6.Data.Q3) / 1073741824.0; // Convert to double. Divide by 2^30
 
-                /*
-                SERIAL_PORT.print(F("Q1:"));
-                SERIAL_PORT.print(q1, 3);
-                SERIAL_PORT.print(F(" Q2:"));
-                SERIAL_PORT.print(q2, 3);
-                SERIAL_PORT.print(F(" Q3:"));
-                SERIAL_PORT.println(q3, 3);
-            */
-
-                // Convert the quaternions to Euler angles (roll, pitch, yaw)
+                             // Convert the quaternions to Euler angles (roll, pitch, yaw)
                 // https://en.wikipedia.org/w/index.php?title=Conversion_between_quaternions_and_Euler_angles&section=8#Source_code_2
 
                 double q0 = sqrt(1.0 - ((q1 * q1) + (q2 * q2) + (q3 * q3)));
@@ -188,36 +137,13 @@ void SENSORS::flushMPUData(void)
 
 void SENSORS::flushGPSData(void)
 { 
-  // This needs to be called on the main loop IMO. This does not force any update btw. It just checks if there is new data. Naming might be misleading.
-//   if(Serial2.available()){
-//   char c = Serial2.read();
-//   if(gps.encode(c)){ // This means there is new data available. Therefore it might be good to parse and update data.
     
-//     gpsData.satCount = gps.satellites();
-//     gpsData.HDOP = gps.hdop();
-//     gps.f_get_position(&(gpsData.latitude),&(gpsData.longitude), &(gpsData.age));
-//     gpsData.altitude = gps.f_altitude();
-//     int year; // Dumped data.
-//     unsigned long age; // Dumped data.
-//     byte month,day,hundredths; // Dumped data, will be deleted after read.
-//     gps.crack_datetime(&year,&month,&day,&(gpsData.hour),&(gpsData.minute),&(gpsData.second), &hundredths, &age);
-    
-
-//     Serial.println(gpsData.latitude);
-//     Serial.println(gpsData.longitude);
-//     Serial.println(gpsData.altitude);
-
-//   }
-//  } 
     while (Serial2.available() > 0)
     {
         if (gps.encode(Serial2.read()))
         {
             if (gps.location.isValid())
             {
-                // Serial.print(gps.location.lat(), 6);
-                // Serial.print(F(","));
-                // Serial.print(gps.location.lng(), 6);
                 gpsData.latitude = gps.location.lat();
                 gpsData.longitude = gps.location.lng();
             }
