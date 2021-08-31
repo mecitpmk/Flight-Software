@@ -133,7 +133,7 @@ void Communucation::setNewStatus(void)
         udp.println("NOW ALTITUDE IS FIXING!!!!!!!!*********");
         fixAltitude = true;
         fixAltTrueBefore = true;
-        /
+        
         strcpy(data.FLIGHT_STATUS,"FIXEDALT");
         // Burada hemen motora güç ver çünkü diğer yerlere gidene kadar time elapsed olacak.
     }
