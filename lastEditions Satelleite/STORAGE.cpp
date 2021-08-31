@@ -19,7 +19,7 @@ void STORAGE::initStorage(void){
   {
     Serial.println("SD CARD IS READY..");
   }
-  }
+  
   uint8_t cardType = SD.cardType();
 
   if(cardType == CARD_NONE)
