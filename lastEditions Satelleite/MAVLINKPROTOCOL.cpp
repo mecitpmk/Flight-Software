@@ -395,7 +395,19 @@ void Communucation::mainLp(void)
         {
             if (!strcmp(STARTS_BUF,"S"))
             {
-                systemActivated = true; 
+                systemActivated = true;
+
+                /* ! Newly Added ! Purpose : When the command come from GCS,
+                        Direcly make the calibration ESC! 
+                        Verified-TESTED : NONE */
+                unsigned long manualReleaseTimer = millis();
+                ESC.write(50);
+                while (millis() - manualReleaseTimer < 50)
+                {
+                    continue;
+                }
+                ESC.write(0); // ! NEWLY ADDED ! //
+
                 oneHZ = millis();
 
                 // testCalibration = millis();
