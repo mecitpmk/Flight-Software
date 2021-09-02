@@ -108,14 +108,16 @@ void Communucation::setNewStatus(void)
     if (package_number == 1 || (data.altitude >= 0 &&  data.altitude < 3) )
     {
         // ilk açıldığında ve yükseklik   =   0 <= yükseklik < 3
-        strcpy(data.FLIGHT_STATUS,"WAITING");
+        // strcpy(data.FLIGHT_STATUS,"WAITING");
+        dataPacket.FLIGHT_STATUS  =    0;
     }
 
     else if (package_number != 1 && data.altitude > *(old_datas.altPtr-1) && data.altitude  >= 4)
     {
         // Şimdikik yükseklik  > önceki yükseklik ve  yükselik >= 4
         
-        strcpy(data.FLIGHT_STATUS,"RISING");
+        // strcpy(data.FLIGHT_STATUS,"RISING");
+        dataPacket.FLIGHT_STATUS  =    1;
     }
 
     else if (package_number != 1 &&  403 > data.altitude && 397 < data.altitude && !seperatedBefore)
@@ -123,7 +125,8 @@ void Communucation::setNewStatus(void)
         // 395<yükseklik<405 ve dahaönceAyrışmadıYSA
         // Ayrışma Mekanizmasını Devreye Sok.
         
-        strcpy(data.FLIGHT_STATUS,"SEPERATING");
+        // strcpy(data.FLIGHT_STATUS,"SEPERATING");
+        dataPacket.FLIGHT_STATUS  =    2;
         seperatedBefore = true;
     }
 
@@ -134,7 +137,8 @@ void Communucation::setNewStatus(void)
         fixAltitude = true;
         fixAltTrueBefore = true;
         
-        strcpy(data.FLIGHT_STATUS,"FIXEDALT");
+        // strcpy(data.FLIGHT_STATUS,"FIXEDALT");
+        dataPacket.FLIGHT_STATUS  =    5;
         // Burada hemen motora güç ver çünkü diğer yerlere gidene kadar time elapsed olacak.
     }
 
@@ -143,19 +147,22 @@ void Communucation::setNewStatus(void)
         // Önceki yükselik > şimdiyükselik ve dahaönceAyrıştıysa.
         //
         
-        strcpy(data.FLIGHT_STATUS,"PAYFALL");
+        // strcpy(data.FLIGHT_STATUS,"PAYFALL");
+        dataPacket.FLIGHT_STATUS  =    4;
     }
 
     else if (package_number != 1 && seperatedBefore && data.altitude >= 0  && data.altitude < 5)
     {
         // AYrıştıysa ve  0<= Yükseklik < 5
-        strcpy(data.FLIGHT_STATUS,"RESCUE");
+        // strcpy(data.FLIGHT_STATUS,"RESCUE");
+        dataPacket.FLIGHT_STATUS  =    6;
     }
 
     else if (package_number != 1 && data.altitude < *(old_datas.altPtr-1))
     {
         // Şimdiki Yükseklik < Önceki Yükseklik.
-        strcpy(data.FLIGHT_STATUS,"FLIGHTFALL");
+        // strcpy(data.FLIGHT_STATUS,"FLIGHTFALL");
+        dataPacket.FLIGHT_STATUS  =    3;
     }
 }
 void Communucation::readTemperature(void)
@@ -209,9 +216,9 @@ bool Communucation::waitforResponse(void)
 {
     //Serial.print("The Buffer is ");
     //Serial.println(Buffer);
-    subStr();
+    memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket));
     getProtocolStatus();
-    COMMAND = atoi(CMMND);  // get Command.
+    COMMAND = gcsPacket.command;  // get Command.
     switch (HEADER)
     {
         case MISSED_DATA_AV_H:
@@ -221,22 +228,27 @@ bool Communucation::waitforResponse(void)
             break; // DO NOTHING
         case VIDEO_SIZE_H:
             Serial.print("V_S Buffer : ");
-            Serial.println(Buffer);
-            VIDEO_SIZE = strtoul(Buffer, NULL, 10); // Video BinarySize to Unsigned Long
-            strcpy(SendingStringBuffer, "VS 1\n");
+            Serial.println(gcsPacket.bufferArray);
+            VIDEO_SIZE = strtoul(gcsPacket.bufferArray, NULL, 10); // Video BinarySize to Unsigned Long
+            // strcpy(SendingStringBuffer, "VS 1\n");
+            ACKPacket.ACKType = 0;
+            ACKPacket.ACK = 1;
             Serial.print("Video Size Reached.. ");
             Serial.println(VIDEO_SIZE);
             break;
         case VIDEO_DATA_H:
-            REACHED_SIZE += (int)strlen(Buffer);
-            storage.writeVideo(SD,Buffer);
+            REACHED_SIZE += (int)strlen(gcsPacket.bufferArray);
+            storage.writeVideo(SD,gcsPacket.bufferArray);
+            ACKPacket.ACKType = 1;
             if (REACHED_SIZE >= VIDEO_SIZE)
             {
-                strcpy(SendingStringBuffer, "V 3\n");
+                // strcpy(SendingStringBuffer, "V 3\n");
+                ACKPacket.ACK = 2;
             }
             else
             {
-                strcpy(SendingStringBuffer, "V 1\n");
+                ACKPacket.ACK = 1;
+                // strcpy(SendingStringBuffer, "V 1\n");
                 Serial.println("V1");
                 //Serial.println((uint16_t)strlen(Buffer));
             }
@@ -250,6 +262,27 @@ bool Communucation::waitforResponse(void)
 
     }
     return false;
+}
+
+
+void Communucation::sendPackage(void)
+{
+    // send InformationFrame
+    // send dataFrame
+    udp.beginPacket(udpAddress, udpPort);
+    udp.write((const uint8_t * )&dataPacket,sizeof(dataPacket));
+    udp.endPacket();
+}
+
+void Communucation::sendACK(void)
+{
+     // send InformationFrame   
+     // send ACKFrame
+    
+    udp.beginPacket(udpAddress, udpPort);
+    udp.write((const uint8_t * )&ACKPacket,sizeof(ACKPacket));
+    udp.endPacket();
+    
 }
 
 
@@ -326,26 +359,26 @@ void Communucation::getDatas(void)
         sensors.flushGPSData();
         
         
-        udp.beginPacket(udpAddress, udpPort);
-        sendTelemetries();
-        udp.endPacket();
+        afterReading = millis(); 
 
-        saveTelemetries();
+        RemainTime = afterReading - beforeReading;
+        dataPacket.Interval= 1000-RemainTime;
+
+        // sendTelemetries();
+        sendPackage();
+
+        // saveTelemetries(); // Save Telemetries Disabled for Now..
         
         memset(Buffer, '\0', sizeof(Buffer));
-        SendingStringBuffer[0] = '\0';
+        // SendingStringBuffer[0] = '\0';
 
-        afterReading = millis(); 
-        RemainTime = afterReading - beforeReading;
-        
-        INTERV = 1000-RemainTime;
 
        
-        udp.beginPacket(udpAddress, udpPort);
-        udp.printf("I %d", INTERV);
-        udp.endPacket();
+        // udp.beginPacket(udpAddress, udpPort);
+        // udp.printf("I %d", INTERV);
+        // udp.endPacket();
         
-        while (millis() - afterReading < INTERV)
+        while (millis() - afterReading <  dataPacket.Interval )
         {   
             udp.parsePacket();
             int LenPackage = udp.read(Buffer, 500);
@@ -359,16 +392,19 @@ void Communucation::getDatas(void)
             {
                 Readed = false;
                 waitforResponse();
-                memset(Buffer, '\0', sizeof(Buffer)); 
-                udp.beginPacket(udpAddress, udpPort);
-                if (SendingStringBuffer[0] != '\0') udp.write((const uint8_t *) SendingStringBuffer,strlen(SendingStringBuffer)); //we can use udp.printf %s  ???
-                udp.endPacket();
-                SendingStringBuffer[0] = '\0';
+                memset(Buffer, '\0', sizeof(Buffer));
+                if (gcsPacket.bufferArray[0] != '\0')
+                {
+                    memset(gcsPacket.bufferArray , '\0',sizeof(gcsPacket.bufferArray));
+                }
+                sendACK();
+                // if (SendingStringBuffer[0] != '\0') udp.write((const uint8_t *) SendingStringBuffer,strlen(SendingStringBuffer)); //we can use udp.printf %s  ???
+                // SendingStringBuffer[0] = '\0';
             }
         }
-        udp.beginPacket(udpAddress, udpPort);
-        udp.printf("E\n"); // communucation ENDED Message.
-        udp.endPacket();
+        ACKPacket.ACKType = 2; // Just make ACK Type 2 
+        sendACK();
+        // udp.write("E\n"); // communucation ENDED Message.
         package_number +=1;
         if (COMMAND != 0)
         {
@@ -393,7 +429,7 @@ void Communucation::mainLp(void)
         }
         if (START_READED)
         {
-            if (!strcmp(STARTS_BUF,"S"))
+            if (STARTS_BUF[0] == 5) // STARTS COMMAND..
             {
                 systemActivated = true;
 
@@ -444,67 +480,70 @@ void Communucation::mainLp(void)
 
 
 
-void Communucation::subStr (void) 
-{
-    char* PT = Buffer;
-    char* p = strtok_r(Buffer, DELIM,&PT); // DELIM GLOBALLY DEFINED.
-    strcpy(TAG, p);
-    uint8_t ct = 0;
-    while (p != NULL)
-    {
-        if (ct == 3)
-        {
-            strcpy(Buffer, p);
-            break;
-        }
-        switch (ct)
-        {
-        case 1:
-            strcpy(CMMND, p);
-            Serial.print("C_CPY,");
-            break;
-        case 2:
-            strcpy(VIDEO_LNG, p);
-            Serial.println("V_L_CP");
-            break;
-        default:
-            break;
-        }
-        p = strtok_r(NULL, DELIM,&PT); // 
-        ct++;
-    }
+// void Communucation::subStr (void) 
+// {
+//     char* PT = Buffer;
+//     char* p = strtok_r(Buffer, DELIM,&PT); // DELIM GLOBALLY DEFINED.
+//     strcpy(TAG, p);
+//     uint8_t ct = 0;
+//     while (p != NULL)
+//     {
+//         if (ct == 3)
+//         {
+//             strcpy(Buffer, p);
+//             break;
+//         }
+//         switch (ct)
+//         {
+//         case 1:
+//             strcpy(CMMND, p);
+//             Serial.print("C_CPY,");
+//             break;
+//         case 2:
+//             strcpy(VIDEO_LNG, p);
+//             Serial.println("V_L_CP");
+//             break;
+//         default:
+//             break;
+//         }
+//         p = strtok_r(NULL, DELIM,&PT); // 
+//         ct++;
+//     }
     
-}
+// }
 
 void Communucation::getProtocolStatus(void)
 {
-    if (!strcmp(TAG, "N")) HEADER = NOTHING_MISSED_H;
-    else if (!strcmp(TAG, "M")) HEADER = MISSED_DATA_AV_H;
-    else if (!strcmp(TAG, "VS")) HEADER = VIDEO_SIZE_H;
-    else if (!strcmp(TAG, "V")) HEADER = VIDEO_DATA_H;
+    if (Buffer[0]  == NOTHING_MISSED_H) HEADER = NOTHING_MISSED_H;
+    else if (Buffer[0] == MISSED_DATA_AV_H) HEADER = MISSED_DATA_AV_H;
+    else if (Buffer[0] == VIDEO_SIZE_H) HEADER = VIDEO_SIZE_H;
+    else if (Buffer[0] == VIDEO_DATA_H) HEADER = VIDEO_DATA_H;
     else HEADER = ERROR_H;
 }
 void Communucation::stringCopies(void)
 {
-    strcpy(data.FLIGHT_STATUS, "WAITING");
-    strcpy(data.VIDEO_TRANSMISSION_INFO, "HAYIR");
+    // strcpy(data.FLIGHT_STATUS, "WAITING");
+    // strcpy(data.VIDEO_TRANSMISSION_INFO, "HAYIR");
+    dataPacket.FLIGHT_STATUS = 0;
+    dataPacket.VIDE_TRANSMISSION_INFO = 0;
 }
 void Communucation::sendTelemetries(void)
 {
 
-    udp.printf("<");
-    udp.printf("%d",TEAM_ID);udp.printf(",");udp.printf("%d",package_number);udp.printf(",");
-    udp.printf("%02d/%02d/%02d %02d:%02d:%02d",sensors.gpsData.day,sensors.gpsData.month,sensors.gpsData.year,sensors.gpsData.hour,sensors.gpsData.minute,sensors.gpsData.second);udp.printf(",");
-    udp.printf("%.2f",sensors.bmpData.pressure);udp.printf(",");udp.printf("%.2f",sensors.bmpData.altitude);udp.printf(",");
-    udp.printf("%.2f",abs(sensors.prevAltitude - sensors.bmpData.altitude));udp.printf(",");
-    udp.printf("%.2f",sensors.bmpData.temperature);udp.printf(",");udp.printf("%.1f",data.batteryVoltage);udp.printf(",");
-    udp.printf("%.2f",sensors.gpsData.latitude);udp.printf(",");udp.printf("%.1f",sensors.gpsData.longitude);udp.printf(",");
-    udp.printf("%.2f",sensors.gpsData.altitude);udp.printf(",");
-    udp.printf("%s",data.FLIGHT_STATUS);udp.printf(",");
-    udp.printf("%.2f",sensors.mpuData.pitch);udp.printf(",");udp.printf("%.2f",sensors.mpuData.roll);udp.printf(",");
-    udp.printf("%.2f",sensors.mpuData.yaw);udp.printf(",");udp.printf("%.2f", data.turn_number);udp.printf(",");
-    udp.printf("%s",data.VIDEO_TRANSMISSION_INFO);
-    udp.printf(">\n");
+    
+    // udp.printf("<");
+    // udp.printf("%d",TEAM_ID);udp.printf(",");udp.printf("%d",package_number);udp.printf(",");
+    // udp.printf("%02d/%02d/%02d %02d:%02d:%02d",sensors.gpsData.day,sensors.gpsData.month,sensors.gpsData.year,sensors.gpsData.hour,sensors.gpsData.minute,sensors.gpsData.second);udp.printf(",");
+    // udp.printf("%.2f",sensors.bmpData.pressure);udp.printf(",");udp.printf("%.2f",sensors.bmpData.altitude);udp.printf(",");
+    // udp.printf("%.2f",abs(sensors.prevAltitude - sensors.bmpData.altitude));udp.printf(",");
+    // udp.printf("%.2f",sensors.bmpData.temperature);udp.printf(",");udp.printf("%.1f",data.batteryVoltage);udp.printf(",");
+    // udp.printf("%.2f",sensors.gpsData.latitude);udp.printf(",");udp.printf("%.1f",sensors.gpsData.longitude);udp.printf(",");
+    // udp.printf("%.2f",sensors.gpsData.altitude);udp.printf(",");
+    // udp.printf("%s",data.FLIGHT_STATUS);udp.printf(",");
+    // udp.printf("%.2f",sensors.mpuData.pitch);udp.printf(",");udp.printf("%.2f",sensors.mpuData.roll);udp.printf(",");
+    // udp.printf("%.2f",sensors.mpuData.yaw);udp.printf(",");udp.printf("%.2f", data.turn_number);udp.printf(",");
+    // udp.printf("%s",data.VIDEO_TRANSMISSION_INFO);
+    // udp.printf(">\n");
 
 
     

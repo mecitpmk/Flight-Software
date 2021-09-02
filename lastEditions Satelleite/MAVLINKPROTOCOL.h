@@ -88,10 +88,6 @@ class Communucation
 
         
         char Buffer[500];
-        char SendingStringBuffer[80];
-        char TAG[3];
-        char CMMND[3];
-        char VIDEO_LNG[10];
 
      
         const char DELIM[1] = {' '};
@@ -101,14 +97,113 @@ class Communucation
        
 
         int VID_LENGTH_CHCK_S;
-        /*char* Tag; char* CMMND;
-        char* L; char* VIDEO_B;
-        char* CHCK_S;
 
-        char** MY_ARRAY[4] = { &Tag, &CMMND , &CHCK_S , &CURRENT_VIDEO_BIN };*/
+
+
+        // Before sending any dataFrame or ACK frame 
+        // This frame should be send.
         
+        struct GCSFrame
+        {
+            uint8_t tagType;
+            /*
+                0 -> N
+                1 -> M
+                2 -> VS
+                3 -> V
+            */
+            uint8_t command ;
+           /*
+                88..
+                99..
+                77..
+           */
+
+            uint8_t bufferSize;      // For example video data is 11111 Buffer size will be = 5
+            
+            uint8_t bufferArray[500]; // Max 500 Byte!
+        }
 
 
+
+        // Data and Interval should be sended from here.
+        struct dataFrame
+        {
+            uint8_t FrameType; // Says ACK or DataFrame
+            uint8_t FLIGHT_STATUS; // send Coded info? 
+                        // 0 is WAITING
+                        // 1 is RISING 
+                        // 2    SEPERATING
+                        // 3    FLIGHTFALL
+                        // 4    PAYFALL
+                        // 5    FIXEDALT
+                        // 6    RESCUE
+
+            uint8_t VIDEO_TRANSMISSION_INFO;
+                        // 0 is No
+                        // 1 is Yes
+            
+
+            float altitude          ;   // Yukseklik
+            float pressure          ;   //Basınç
+            float temperature       ; //Sıcaklık
+
+            float turn_number       ; // Dönüş Sayısı
+            float pitch             ; // Pitch
+            float yaw               ; // Yaw
+            float roll              ; // Roll
+
+            float batteryVoltage    ;
+            float descentSpeed      ;
+
+            uint16_t Interval       ;
+            const uint16_t TEAM_ID  ;
+            uint16_t package_number ;
+
+            float latitude          ;
+            float longtitude        ;
+
+            // Add time infos..
+            
+            
+        } __attribute__((packed)) ;
+        
+        /*
+            Read first byte(first 8 bits) from GCS and
+                make decision which info is comed..
+                    Meaning  : GCS Check its ACK or dataFrame from first byte.
+        */
+
+
+        // When the GCS waits respond from us
+        // Send that frame
+        struct ACKFrame
+        {
+            uint8_t FrameType;
+            uint8_t ACKType;
+            uint8_t ACK;
+            /*
+
+                ACKType:
+                    0 -> VS   ACK
+                    1 -> V    ACK
+                    2 -> E    ACK (COMM ENDED)
+                ACK :
+                    0 -> UNSUCCESSFULLY
+                    1 -> SUCCESSFULLY
+                    2 -> if ACKType is  1 (V), Make ACK 2. Means Completed.
+            */
+        };
+        
+        
+        struct dataFrame dataPacket;
+        struct ACKFrame ACKPacket;
+        struct GCSFrame gcsPacket;
+
+        dataPacket.FrameType = 0; // Says its DataFrame 
+        ACKPacket.FrameType = 1; // ACK Frame
+        gcsPacket.bufferArray[0] = '\0';
+        
         //uint16_t ReachedByte = 0;
         unsigned long REACHED_SIZE = 0;
         unsigned long VIDEO_SIZE = 0;
@@ -135,20 +230,21 @@ class Communucation
 
 
         WiFiUDP udp;
-
         typedef enum
         {
-            NOTHING_MISSED_H,
-            MISSED_DATA_AV_H,
-            VIDEO_SIZE_H,
-            VIDEO_DATA_H,
-            ERROR_H
+            NOTHING_MISSED_H    = 0,
+            MISSED_DATA_AV_H    = 1,
+            VIDEO_SIZE_H        = 2,
+            VIDEO_DATA_H        = 3,
+            ERROR_H             = 4
         }COMING_HEADER;
         COMING_HEADER HEADER;
         
         
         Communucation();                    //constructor.
         
+        void sendPackage(void) ; // First send 
+        void sendACK(void);
         void stringCopies(void); // in setup() run this function to copy.
         void readPressure(void);    //Basıncı okuma fonksiyonu
         void readAltitude(void);    //Yüksekliği okuma fonksiyonu
@@ -164,7 +260,7 @@ class Communucation
         void manualServiceCheck(void);
         void manualmotorActivation(bool fortesting);
         void getDatas(void);
-        void subStr (void); // STR COMES FROM BUFFER ! .
+        // void subStr (void); // STR COMES FROM BUFFER ! .
         void sendTelemetries(void);
         void getProtocolStatus(void);
         void saveTelemetries(void);
