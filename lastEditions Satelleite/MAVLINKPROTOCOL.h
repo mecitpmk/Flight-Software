@@ -157,7 +157,7 @@ class Communucation
             float descentSpeed      ;
 
             uint16_t Interval       ;
-            const uint16_t TEAM_ID  ;
+            uint16_t TEAM_ID  ;
             uint16_t package_number ;
 
             float latitude          ;
@@ -195,13 +195,14 @@ class Communucation
             */
         };
         
-        
-        struct dataFrame dataPacket;
-        struct ACKFrame ACKPacket;
-        struct GCSFrame gcsPacket;
+        // Search for default parameeter for struct
+            // .FrameType = 0 gibi.
+        struct dataFrame dataPacket ;
+        struct ACKFrame ACKPacket   ;
+        struct GCSFrame gcsPacket   ;
 
-        dataPacket.FrameType = 0; // Says its DataFrame 
-        ACKPacket.FrameType = 1; // ACK Frame
+        dataPacket.FrameType     = 0; // Says its DataFrame 
+        ACKPacket.FrameType      = 1; // ACK Frame
         gcsPacket.bufferArray[0] = '\0';
         
         //uint16_t ReachedByte = 0;
