@@ -107,6 +107,7 @@ class Communucation
         {
             uint8_t tagType;
             /*
+                M 88 5 11111
                 0 -> N
                 1 -> M
                 2 -> VS
@@ -122,9 +123,19 @@ class Communucation
             uint8_t bufferSize;      // For example video data is 11111 Buffer size will be = 5
             
             uint8_t bufferArray[500]; // Max 500 Byte!
-        }
+        };
+
+        /*
+            Ground Station'dan datayı write ederken,
+                503 byte basmamak için
+                    Eger video datası yok ise
+                    write( .... sizeof(Struct)) vermek yerine
+                    write ( .... 3 ) ver [3 tane uint8_t olduğu icin 3 byte]
+                    böylelikle yalnızca 3 byte göndermiş oluruz
+                    Serial'i yormayız..                    
 
 
+        */
 
         // Data and Interval should be sended from here.
         struct dataFrame
