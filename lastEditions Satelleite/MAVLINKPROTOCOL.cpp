@@ -216,7 +216,9 @@ bool Communucation::waitforResponse(void)
 {
     //Serial.print("The Buffer is ");
     //Serial.println(Buffer);
-    memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket));
+    memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket)); // BU BURDA OLMAMALI
+    // NEDEN ? ÇÜNKÜ GCS SADECE 2 BYTE GONDERMIS OLABILIR YANI VIDEO GONDERMEMIS OLABILIR NEDEN HEPSINI ATIYOSUN?
+    // GELEN HEADER'A GORE sizeof kopyala..
     getProtocolStatus();
     COMMAND = gcsPacket.command;  // get Command.
     switch (HEADER)
@@ -270,6 +272,7 @@ void Communucation::sendPackage(void)
     // send InformationFrame
     // send dataFrame
     udp.beginPacket(udpAddress, udpPort);
+    
     udp.write((const uint8_t * )&dataPacket,sizeof(dataPacket));
     udp.endPacket();
 }
@@ -402,7 +405,7 @@ void Communucation::getDatas(void)
                 // SendingStringBuffer[0] = '\0';
             }
         }
-        ACKPacket.ACKType = 2; // Just make ACK Type 2 
+        ACKPacket.ACKType = 2; // Just make ACK Type 2 (END SIGNAL) 
         sendACK();
         // udp.write("E\n"); // communucation ENDED Message.
         package_number +=1;

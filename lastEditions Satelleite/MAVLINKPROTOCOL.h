@@ -183,6 +183,8 @@ class Communucation
             Read first byte(first 8 bits) from GCS and
                 make decision which info is comed..
                     Meaning  : GCS Check its ACK or dataFrame from first byte.
+                    Ex : if      bytes[0] == 0 its Dataframe memcpy to Dataframe structure.
+                         else if bytes[0] == 1 its ACKFrame  mempcy to ackFrame structure.
         */
 
 
