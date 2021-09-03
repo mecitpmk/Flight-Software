@@ -214,11 +214,6 @@ void Communucation::releasePayload(void)
 
 bool Communucation::waitforResponse(void)
 {
-    //Serial.print("The Buffer is ");
-    //Serial.println(Buffer);
-    memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket)); // BU BURDA OLMAMALI
-    // NEDEN ? ÇÜNKÜ GCS SADECE 2 BYTE GONDERMIS OLABILIR YANI VIDEO GONDERMEMIS OLABILIR NEDEN HEPSINI ATIYOSUN?
-    // GELEN HEADER'A GORE sizeof kopyala..
     getProtocolStatus();
     COMMAND = gcsPacket.command;  // get Command.
     switch (HEADER)
@@ -240,7 +235,7 @@ bool Communucation::waitforResponse(void)
             break;
         case VIDEO_DATA_H:
             REACHED_SIZE += (int)strlen(gcsPacket.bufferArray);
-            storage.writeVideo(SD,gcsPacket.bufferArray);
+            //storage.writeVideo(SD,gcsPacket.bufferArray);
             ACKPacket.ACKType = 1;
             if (REACHED_SIZE >= VIDEO_SIZE)
             {
@@ -517,11 +512,31 @@ void Communucation::mainLp(void)
 
 void Communucation::getProtocolStatus(void)
 {
-    if (Buffer[0]  == NOTHING_MISSED_H) HEADER = NOTHING_MISSED_H;
-    else if (Buffer[0] == MISSED_DATA_AV_H) HEADER = MISSED_DATA_AV_H;
-    else if (Buffer[0] == VIDEO_SIZE_H) HEADER = VIDEO_SIZE_H;
-    else if (Buffer[0] == VIDEO_DATA_H) HEADER = VIDEO_DATA_H;
-    else HEADER = ERROR_H;
+    if (Buffer[0]  == NOTHING_MISSED_H)
+    {    
+        HEADER = NOTHING_MISSED_H;
+        memcpy(&gcsPacket,  Buffer , 2); // BU BURDA OLMAMALI
+
+    } 
+    else if (Buffer[0] == MISSED_DATA_AV_H)
+    {
+        HEADER = MISSED_DATA_AV_H;
+        memcpy(&gcsPacket,  Buffer , 2); // BU BURDA OLMAMALI
+    }
+    else if (Buffer[0] == VIDEO_SIZE_H) 
+    {
+        HEADER = VIDEO_SIZE_H;
+        memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket)); // BU BURDA OLMAMALI
+    }
+    else if (Buffer[0] == VIDEO_DATA_H)
+    {   
+        HEADER = VIDEO_DATA_H;
+        memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket)); // BU BURDA OLMAMALI
+    }
+    else
+    {
+        HEADER = ERROR_H;
+    }
 }
 void Communucation::stringCopies(void)
 {
