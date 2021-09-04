@@ -1,12 +1,12 @@
 #include "MAVLINKPROTOCOL.h"
-#include "SENSORS.h"
-#include "STORAGE.h"
-#include "FS.h" // NOT NECESSARILY NEEDED.. DONT FORGET TO REMOVE ALSO PUT "#pragma once" words into header files.
+// #include "SENSORS.h"
+// #include "STORAGE.h"
+// #include "FS.h" // NOT NECESSARILY NEEDED.. DONT FORGET TO REMOVE ALSO PUT "#pragma once" words into header files.
 
 
 
 //#include <string.h>
-//#include <WiFiUdp.h>
+//#include <WiFiSerial.h>
 /*/
     Written by : Mecit Pamuk
             Last Release Date : 2/11/2021 3:14 AM
@@ -133,7 +133,7 @@ void Communucation::setNewStatus(void)
     else if (package_number != 1 && data.altitude <*(old_datas.altPtr-1) && seperatedBefore && data.altitude >= 190 && data.altitude <= 210 && !fixAltTrueBefore)
     {
         //      190 < x < 210 // 185
-        udp.println("NOW ALTITUDE IS FIXING!!!!!!!!*********");
+        Serial.println("NOW ALTITUDE IS FIXING!!!!!!!!*********");
         fixAltitude = true;
         fixAltTrueBefore = true;
         
@@ -167,11 +167,9 @@ void Communucation::setNewStatus(void)
 }
 void Communucation::readTemperature(void)
 {
-  data.temperature = (float)sensors.bmpData.temperature; // An example read from sensor, beware that this just reads the existing data and a flush before a read is necessary to get new data.
-  /*
+//   data.temperature = (float)sensors.bmpData.temperature; // An example read from sensor, beware that this just reads the existing data and a flush before a read is necessary to get new data.
     data.temperature = data.temperature +1;
     *old_datas.tempPtr = data.temperature;
-     */
 }
 void Communucation::readTurnNumber(void)
 {
@@ -202,12 +200,12 @@ void Communucation::releasePayload(void)
 {
     
     unsigned long manualReleaseTimer = millis();
-    ESC.write(50);
+    // ESC.write(50);
     while (millis() - manualReleaseTimer < 50)
     {
         continue;
     }
-    ESC.write(0);
+    // ESC.write(0);
     
 }
 
@@ -224,17 +222,17 @@ bool Communucation::waitforResponse(void)
         case NOTHING_MISSED_H:
             break; // DO NOTHING
         case VIDEO_SIZE_H:
-            Serial.print("V_S Buffer : ");
-            Serial.println(gcsPacket.bufferArray);
-            VIDEO_SIZE = strtoul(gcsPacket.bufferArray, NULL, 10); // Video BinarySize to Unsigned Long
+            // Serial.print("V_S Buffer : ");
+            // Serial.println(gcsPacket.bufferArray);
+            VIDEO_SIZE = strtoul((const char*)gcsPacket.bufferArray, NULL, 10); // Video BinarySize to Unsigned Long
             // strcpy(SendingStringBuffer, "VS 1\n");
             ACKPacket.ACKType = 0;
             ACKPacket.ACK = 1;
-            Serial.print("Video Size Reached.. ");
+            // Serial.print("Video Size Reached.. ");
             Serial.println(VIDEO_SIZE);
             break;
         case VIDEO_DATA_H:
-            REACHED_SIZE += (int)strlen(gcsPacket.bufferArray);
+            REACHED_SIZE += (int)strlen((const char*)gcsPacket.bufferArray);
             //storage.writeVideo(SD,gcsPacket.bufferArray);
             ACKPacket.ACKType = 1;
             if (REACHED_SIZE >= VIDEO_SIZE)
@@ -246,7 +244,7 @@ bool Communucation::waitforResponse(void)
             {
                 ACKPacket.ACK = 1;
                 // strcpy(SendingStringBuffer, "V 1\n");
-                Serial.println("V1");
+                // Serial.println("V1");
                 //Serial.println((uint16_t)strlen(Buffer));
             }
             break;  
@@ -266,10 +264,20 @@ void Communucation::sendPackage(void)
 {
     // send InformationFrame
     // send dataFrame
-    udp.beginPacket(udpAddress, udpPort);
-    
-    udp.write((const uint8_t * )&dataPacket,sizeof(dataPacket));
-    udp.endPacket();
+    // Serial.beginPacket(SerialAddress, SerialPort);
+    while (true)
+    {
+        if (Serial.availableForWrite() >= (uint8_t)sizeof(dataPacket))
+        {
+
+            Serial.write((const uint8_t * )&dataPacket,sizeof(dataPacket));
+            Serial.flush();
+            break;
+        }
+        else Serial.flush();
+    }
+
+    // Serial.endPacket();
 }
 
 void Communucation::sendACK(void)
@@ -277,9 +285,19 @@ void Communucation::sendACK(void)
      // send InformationFrame   
      // send ACKFrame
     
-    udp.beginPacket(udpAddress, udpPort);
-    udp.write((const uint8_t * )&ACKPacket,sizeof(ACKPacket));
-    udp.endPacket();
+    // Serial.beginPacket(SerialAddress, SerialPort);
+    // Serial.endPacket();
+    while (true)
+    {
+        if (Serial.availableForWrite() >= (uint8_t)sizeof(ACKPacket))
+        {
+
+            Serial.write((const uint8_t * )&ACKPacket,sizeof(ACKPacket));
+            Serial.flush();
+            break;
+        }
+        else Serial.flush();
+    }
     
 }
 
@@ -309,26 +327,26 @@ void Communucation::manualmotorActivation(bool fortesting)
         // Motors run 10 seconds for testing.
         motorElapsedTime = millis();
         bool tenSecond = false;
-        ESC.write(20);
+        // ESC.write(20);
         while (millis() - motorElapsedTime <= testMotorsInterval)
         {
-            //udp.println("MANUALMOTOR10");
+            //Serial.println("MANUALMOTOR10");
             // if (!tenSecond)
             // {
-            //     //udp.println("manualMotor10"); // THIS IS FOR NOT PRINTING ALL THE TIME
+            //     //Serial.println("manualMotor10"); // THIS IS FOR NOT PRINTING ALL THE TIME
             //     tenSecond = true;
             // }
             getDatas();
             
             // Motors Run for 10 seconds.
         }
-        ESC.write(0);
-        //udp.println("10ManualMotorISEND!!!");
+        // ESC.write(0);
+        //Serial.println("10ManualMotorISEND!!!");
     }
     else
     {
         // MOTOR RUN ALWAYS WITH CONSTANT SPEED [ITS NOT FOR TESTING.]
-        //udp.println("MANUALMOTALWAYS");
+        //Serial.println("MANUALMOTALWAYS");
     }
     
 }
@@ -346,15 +364,29 @@ void Communucation::getDatas(void)
         COMMAND = 0;
 
         //FIRST flush sensord data so we have recent data.
-        sensors.flushBMPData();
+        // sensors.flushBMPData();
         // After this check Condition about isReleasing or something...
         
 
-        sensors.flushMPUData(); // Another flush of sensors.
+        // sensors.flushMPUData(); // Another flush of sensors.
         // Read turn number?
 
 
-        sensors.flushGPSData();
+        // sensors.flushGPSData();
+
+        dataPacket.altitude = 32.11;
+        dataPacket.pressure = 11.333;
+        dataPacket.temperature = 15;
+        dataPacket.turn_number = 1;
+        dataPacket.pitch = 7.11;
+        dataPacket.yaw = -2.11;
+        dataPacket.roll = 4.11;
+        dataPacket.batteryVoltage = 3.33;
+        dataPacket.descentSpeed = 0;
+        dataPacket.TEAM_ID = 1152;
+        dataPacket.package_number = 4;
+        dataPacket.latitude = 2;
+        dataPacket.longtitude = 5;
         
         
         afterReading = millis(); 
@@ -364,7 +396,7 @@ void Communucation::getDatas(void)
 
         // sendTelemetries();
         sendPackage();
-
+        // delay(50);
         // saveTelemetries(); // Save Telemetries Disabled for Now..
         
         memset(Buffer, '\0', sizeof(Buffer));
@@ -372,14 +404,15 @@ void Communucation::getDatas(void)
 
 
        
-        // udp.beginPacket(udpAddress, udpPort);
-        // udp.printf("I %d", INTERV);
-        // udp.endPacket();
+        // Serial.beginPacket(SerialAddress, SerialPort);
+        // Serial.printf("I %d", INTERV);
+        // Serial.endPacket();
         
         while (millis() - afterReading <  dataPacket.Interval )
         {   
-            udp.parsePacket();
-            int LenPackage = udp.read(Buffer, 500);
+            continue;
+            // Serial.parsePacket();
+            int LenPackage = Serial.readBytes(Buffer, 500);
             if (LenPackage > 0)
             {
                 Readed = true;
@@ -396,13 +429,14 @@ void Communucation::getDatas(void)
                     memset(gcsPacket.bufferArray , '\0',sizeof(gcsPacket.bufferArray));
                 }
                 sendACK();
-                // if (SendingStringBuffer[0] != '\0') udp.write((const uint8_t *) SendingStringBuffer,strlen(SendingStringBuffer)); //we can use udp.printf %s  ???
+                // if (SendingStringBuffer[0] != '\0') Serial.write((const uint8_t *) SendingStringBuffer,strlen(SendingStringBuffer)); //we can use Serial.printf %s  ???
                 // SendingStringBuffer[0] = '\0';
             }
         }
         ACKPacket.ACKType = 2; // Just make ACK Type 2 (END SIGNAL) 
         sendACK();
-        // udp.write("E\n"); // communucation ENDED Message.
+        
+        // Serial.write("E\n"); // communucation ENDED Message.
         package_number +=1;
         if (COMMAND != 0)
         {
@@ -416,14 +450,31 @@ void Communucation::mainLp(void)
 
     if (!systemActivated)
     {
-        static char STARTS_BUF[10];
+        static byte STARTS_BUF[10];
         static bool START_READED = false;
-        udp.parsePacket();
-        int LenBuff = udp.read(STARTS_BUF, 10);
-
+        // Serial.parsePacket();
+        int LenBuff = Serial.readBytes(STARTS_BUF, 10);
+        // if (STARTS_BUF[0] == 2 )
+        // {
+        //     const uint8_t myArray[5] = {1,3,5,7,9};
+        //     Serial.write(myArray, sizeof(myArray));
+        // }
+        // Serial.write((const uint8_t * )STARTS_BUF , 1);
+        // Serial.print("Length is : : : ");
+        // Serial.print(LenBuff);
+        
         if (LenBuff > 0)
         {
             START_READED = true;
+            // Serial.println("STarted babba..");
+            // for (uint8_t i = 0 ; i < 4 ; i++)
+            // {
+            //     // Serial.println(STARTS_BUF[i]);
+            // }
+            // if (STARTS_BUF[0] - '0' == 3)
+            // {
+            //     // Serial.println("Bu sekildeymis abi..");
+            // }
         }
         if (START_READED)
         {
@@ -435,12 +486,12 @@ void Communucation::mainLp(void)
                         Direcly make the calibration ESC! 
                         Verified-TESTED : NONE */
                 unsigned long manualReleaseTimer = millis();
-                ESC.write(50);
+                // ESC.write(50);
                 while (millis() - manualReleaseTimer < 50)
                 {
                     continue;
                 }
-                ESC.write(0); // ! NEWLY ADDED ! //
+                // ESC.write(0); // ! NEWLY ADDED ! //
 
                 oneHZ = millis();
 
@@ -466,10 +517,10 @@ void Communucation::mainLp(void)
             while (millis() - altFix <= testMotorsInterval)
             {
                 // MotorSPEED INCREASE IN setNewStatus Because Time will be elasped until comes here...
-                //udp.println("!!!! ! !! IRTIFA SABIT !!!!!!! !!! !!!");
+                //Serial.println("!!!! ! !! IRTIFA SABIT !!!!!!! !!! !!!");
                 getDatas();
             }
-            //udp.println("-------------- IRTIFA SABITLEME TAMAMLANDI.-------------");
+            //Serial.println("-------------- IRTIFA SABITLEME TAMAMLANDI.-------------");
             fixAltitude = false;
             // Set Motor Speed To Normal IN RIGHT HERE!!.
         }
@@ -542,26 +593,31 @@ void Communucation::stringCopies(void)
 {
     // strcpy(data.FLIGHT_STATUS, "WAITING");
     // strcpy(data.VIDEO_TRANSMISSION_INFO, "HAYIR");
-    dataPacket.FLIGHT_STATUS = 0;
-    dataPacket.VIDE_TRANSMISSION_INFO = 0;
+
+
+    dataPacket.FrameType     = 0xBB; // Says its DataFrame  Normally 0 I Changed // 0xBB 
+    ACKPacket.FrameType      = 0xCC; // ACK Frame // Normally 1 I changed to // 0xCC
+    gcsPacket.bufferArray[0] = '\0';
+    dataPacket.FLIGHT_STATUS = 3; // Normally 0 
+    dataPacket.VIDEO_TRANSMISSION_INFO = 5; // Normally 0
 }
 void Communucation::sendTelemetries(void)
 {
 
     
-    // udp.printf("<");
-    // udp.printf("%d",TEAM_ID);udp.printf(",");udp.printf("%d",package_number);udp.printf(",");
-    // udp.printf("%02d/%02d/%02d %02d:%02d:%02d",sensors.gpsData.day,sensors.gpsData.month,sensors.gpsData.year,sensors.gpsData.hour,sensors.gpsData.minute,sensors.gpsData.second);udp.printf(",");
-    // udp.printf("%.2f",sensors.bmpData.pressure);udp.printf(",");udp.printf("%.2f",sensors.bmpData.altitude);udp.printf(",");
-    // udp.printf("%.2f",abs(sensors.prevAltitude - sensors.bmpData.altitude));udp.printf(",");
-    // udp.printf("%.2f",sensors.bmpData.temperature);udp.printf(",");udp.printf("%.1f",data.batteryVoltage);udp.printf(",");
-    // udp.printf("%.2f",sensors.gpsData.latitude);udp.printf(",");udp.printf("%.1f",sensors.gpsData.longitude);udp.printf(",");
-    // udp.printf("%.2f",sensors.gpsData.altitude);udp.printf(",");
-    // udp.printf("%s",data.FLIGHT_STATUS);udp.printf(",");
-    // udp.printf("%.2f",sensors.mpuData.pitch);udp.printf(",");udp.printf("%.2f",sensors.mpuData.roll);udp.printf(",");
-    // udp.printf("%.2f",sensors.mpuData.yaw);udp.printf(",");udp.printf("%.2f", data.turn_number);udp.printf(",");
-    // udp.printf("%s",data.VIDEO_TRANSMISSION_INFO);
-    // udp.printf(">\n");
+    // Serial.printf("<");
+    // Serial.printf("%d",TEAM_ID);Serial.printf(",");Serial.printf("%d",package_number);Serial.printf(",");
+    // Serial.printf("%02d/%02d/%02d %02d:%02d:%02d",sensors.gpsData.day,sensors.gpsData.month,sensors.gpsData.year,sensors.gpsData.hour,sensors.gpsData.minute,sensors.gpsData.second);Serial.printf(",");
+    // Serial.printf("%.2f",sensors.bmpData.pressure);Serial.printf(",");Serial.printf("%.2f",sensors.bmpData.altitude);Serial.printf(",");
+    // Serial.printf("%.2f",abs(sensors.prevAltitude - sensors.bmpData.altitude));Serial.printf(",");
+    // Serial.printf("%.2f",sensors.bmpData.temperature);Serial.printf(",");Serial.printf("%.1f",data.batteryVoltage);Serial.printf(",");
+    // Serial.printf("%.2f",sensors.gpsData.latitude);Serial.printf(",");Serial.printf("%.1f",sensors.gpsData.longitude);Serial.printf(",");
+    // Serial.printf("%.2f",sensors.gpsData.altitude);Serial.printf(",");
+    // Serial.printf("%s",data.FLIGHT_STATUS);Serial.printf(",");
+    // Serial.printf("%.2f",sensors.mpuData.pitch);Serial.printf(",");Serial.printf("%.2f",sensors.mpuData.roll);Serial.printf(",");
+    // Serial.printf("%.2f",sensors.mpuData.yaw);Serial.printf(",");Serial.printf("%.2f", data.turn_number);Serial.printf(",");
+    // Serial.printf("%s",data.VIDEO_TRANSMISSION_INFO);
+    // Serial.printf(">\n");
 
 
     
@@ -569,11 +625,11 @@ void Communucation::sendTelemetries(void)
 
 void Communucation::saveTelemetries(void){
   // Some magic badass telemetry constructor. I now re-evalute my career choices.
-  sprintf(telemetryBuffer,"<%d,%d,%02d/%02d/%02d %02d:%02d:%02d,%.2f,%.2f,%.2f,%.2f,%.1f,%.2f,%.1f,%.2f,%s,%.2f,%.2f,%.2f,%.2f,%s>",
-  TEAM_ID,package_number,sensors.gpsData.day,sensors.gpsData.month,sensors.gpsData.year,sensors.gpsData.hour,sensors.gpsData.minute,sensors.gpsData.second,
-  sensors.bmpData.pressure,sensors.bmpData.altitude,abs(sensors.prevAltitude - sensors.bmpData.altitude),sensors.bmpData.temperature,data.batteryVoltage,
-  sensors.gpsData.latitude,sensors.gpsData.longitude,sensors.gpsData.altitude,data.FLIGHT_STATUS,sensors.mpuData.pitch,sensors.mpuData.roll,sensors.mpuData.yaw,
-  data.turn_number,data.VIDEO_TRANSMISSION_INFO
-  );
-  storage.writeTelemetry(SD,telemetryBuffer);
+//   sprintf(telemetryBuffer,"<%d,%d,%02d/%02d/%02d %02d:%02d:%02d,%.2f,%.2f,%.2f,%.2f,%.1f,%.2f,%.1f,%.2f,%s,%.2f,%.2f,%.2f,%.2f,%s>",
+//   TEAM_ID,package_number,sensors.gpsData.day,sensors.gpsData.month,sensors.gpsData.year,sensors.gpsData.hour,sensors.gpsData.minute,sensors.gpsData.second,
+//   sensors.bmpData.pressure,sensors.bmpData.altitude,abs(sensors.prevAltitude - sensors.bmpData.altitude),sensors.bmpData.temperature,data.batteryVoltage,
+//   sensors.gpsData.latitude,sensors.gpsData.longitude,sensors.gpsData.altitude,data.FLIGHT_STATUS,sensors.mpuData.pitch,sensors.mpuData.roll,sensors.mpuData.yaw,
+//   data.turn_number,data.VIDEO_TRANSMISSION_INFO
+//   );
+//   storage.writeTelemetry(SD,telemetryBuffer);
 }

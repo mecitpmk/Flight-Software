@@ -3,12 +3,12 @@
 #define MAVLINKPROTOCOL_H
 #include <Arduino.h>
 #include <string.h>
-#include <WiFiUdp.h>
-#include "SENSORS.h"
-#include "STORAGE.h"
-#include <ESP32Servo.h>
+// #include <WiFiUdp.h>
+// #include "SENSORS.h"
+// #include "STORAGE.h"
+// #include <ESP32Servo.h>
 
-#define MAX_TELEMETRY_LENGTH 2048 // 2kb is probably too much but anyways. I don't wanna fail because of this in tests
+#define MAX_TELEMETRY_LENGTH 2 // 2kb is probably too much but anyways. I don't wanna fail because of this in tests
 
 class DATACLASS
 {
@@ -57,8 +57,8 @@ class OLDDATACLASS
 class Communucation
 {
     public:
-        SENSORS sensors = SENSORS();
-        STORAGE storage = STORAGE();
+        // SENSORS sensors = SENSORS();
+        // STORAGE storage = STORAGE();
         uint16_t package_number = 1; // Paket Numarası Normal counter gibi..
         const uint16_t TEAM_ID = 29779; // Takım Numarası
 
@@ -210,13 +210,13 @@ class Communucation
         
         // Search for default parameeter for struct
             // .FrameType = 0 gibi.
-        struct dataFrame dataPacket ;
-        struct ACKFrame ACKPacket   ;
-        struct GCSFrame gcsPacket   ;
+        // struct dataFrame dataPacket ;
+        // struct ACKFrame ACKPacket   ;
+        // struct GCSFrame gcsPacket   ;
 
-        dataPacket.FrameType     = 0; // Says its DataFrame 
-        ACKPacket.FrameType      = 1; // ACK Frame
-        gcsPacket.bufferArray[0] = '\0';
+        // dataPacket.FrameType     = 0; // Says its DataFrame 
+        // ACKPacket.FrameType      = 1; // ACK Frame
+        // gcsPacket.bufferArray[0] = '\0';
         
         //uint16_t ReachedByte = 0;
         unsigned long REACHED_SIZE = 0;
@@ -230,20 +230,23 @@ class Communucation
         
         uint16_t CHCKSM;
         uint16_t VIDEO_BIN_LENGHT;
-        const char* udpAddress = "192.168.1.100"; // 192.168.1.7 works ?
-        const int udpPort = 3333;   
+        // const char* udpAddress = "192.168.1.100"; // 192.168.1.7 works ?
+        // const int udpPort = 3333;   
 
         
         //unsigned long testCalibration ;
 
         // MOTORS..
-        Servo ESC; // create servo object to control the ESC
+        // Servo ESC; // create servo object to control the ESC
+        struct dataFrame dataPacket ;
+        struct ACKFrame ACKPacket   ;
+        struct GCSFrame gcsPacket   ;
         
         const int pwmPin = 4;
         char telemetryBuffer[MAX_TELEMETRY_LENGTH];
 
 
-        WiFiUDP udp;
+        // WiFiUDP udp;
         typedef enum
         {
             NOTHING_MISSED_H    = 0,
