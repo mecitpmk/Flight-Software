@@ -87,7 +87,7 @@ class Communucation
 
 
         
-        char Buffer[500];
+        char Buffer[100];
 
      
         const char DELIM[1] = {' '};
@@ -122,7 +122,7 @@ class Communucation
 
             uint8_t bufferSize;      // For example video data is 11111 Buffer size will be = 5
             
-            uint8_t bufferArray[500]; // Max 500 Byte!
+            uint8_t bufferArray[100]; // Max 500 Byte!
         };
 
         /*
@@ -168,7 +168,7 @@ class Communucation
             float descentSpeed      ;
 
             uint16_t Interval       ;
-            uint16_t TEAM_ID  ;
+            uint16_t TEAM_ID        ;
             uint16_t package_number ;
 
             float latitude          ;
@@ -201,10 +201,13 @@ class Communucation
                     0 -> VS   ACK
                     1 -> V    ACK
                     2 -> E    ACK (COMM ENDED)
+                    3 -> None None
                 ACK :
                     0 -> UNSUCCESSFULLY
                     1 -> SUCCESSFULLY
                     2 -> if ACKType is  1 (V), Make ACK 2. Means Completed.
+                    3-> VS ENDED
+                    4-> None
             */
         };
         

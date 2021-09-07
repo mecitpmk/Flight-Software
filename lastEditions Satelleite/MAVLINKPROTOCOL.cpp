@@ -229,7 +229,7 @@ bool Communucation::waitforResponse(void)
             ACKPacket.ACKType = 0;
             ACKPacket.ACK = 1;
             // Serial.print("Video Size Reached.. ");
-            Serial.println(VIDEO_SIZE);
+            //Serial.println(VIDEO_SIZE);
             break;
         case VIDEO_DATA_H:
             REACHED_SIZE += (int)strlen((const char*)gcsPacket.bufferArray);
@@ -249,10 +249,10 @@ bool Communucation::waitforResponse(void)
             }
             break;  
         case ERROR_H : 
-            Serial.println("ERROR HAPPENED!");
+            //Serial.println("ERROR HAPPENED!");
             break;
         default:
-            Serial.println("Default Case ?");
+            //Serial.println("Default Case ?");
             break;
 
     }
@@ -265,18 +265,38 @@ void Communucation::sendPackage(void)
     // send InformationFrame
     // send dataFrame
     // Serial.beginPacket(SerialAddress, SerialPort);
-    while (true)
-    {
-        if (Serial.availableForWrite() >= (uint8_t)sizeof(dataPacket))
-        {
+    // while (true)
+    // {
+    //     if (Serial.availableForWrite() >= (uint8_t)sizeof(dataPacket))
+    //     {
 
-            Serial.write((const uint8_t * )&dataPacket,sizeof(dataPacket));
-            Serial.flush();
-            break;
-        }
-        else Serial.flush();
-    }
+    //         Serial.write((const uint8_t * )&dataPacket,sizeof(dataPacket));
+    //         Serial.flush();
+    //         break;
+    //     }
+    //     else Serial.flush();
+    // }
+    // const char endString[2] = {'\n','\r'};
 
+    Serial.write((const uint8_t * )&dataPacket,sizeof(dataPacket));
+    // Serial.println(writed);
+
+    // const uint8_t * const u8Pt = (const uint8_t * const )&dataPacket;
+    // uint8_t packageSize = (uint8_t)sizeof(dataPacket);
+    // uint8_t writtenData = 0;
+    // for (uint8_t i = 0 ; i < packageSize ; i++)
+    // {
+    //     writtenData += Serial.print(u8Pt[i],DEC);
+    //     // writtenData += Serial.write(u8Pt[i]);
+    // }
+    // Serial.println();
+    // Serial.print("Written Data is ");
+    // Serial.println(writtenData);    
+    
+    // Serial.print(">>");
+
+    // Serial.write((const uint8_t * )endString , sizeof(endString));
+    // Serial.flush();
     // Serial.endPacket();
 }
 
@@ -287,18 +307,40 @@ void Communucation::sendACK(void)
     
     // Serial.beginPacket(SerialAddress, SerialPort);
     // Serial.endPacket();
-    while (true)
-    {
-        if (Serial.availableForWrite() >= (uint8_t)sizeof(ACKPacket))
-        {
+    // while (true)
+    // {
+    //     if (Serial.availableForWrite() >= (uint8_t)sizeof(ACKPacket))
+    //     {
 
-            Serial.write((const uint8_t * )&ACKPacket,sizeof(ACKPacket));
-            Serial.flush();
-            break;
-        }
-        else Serial.flush();
-    }
+    //         Serial.write((const uint8_t * )&ACKPacket,sizeof(ACKPacket));
+    //         Serial.flush();
+    //         break;
+    //     }
+    //     else Serial.flush();
+    // }
+    // const char endString[2] = {'\n','\r'};
+
+    Serial.write((const uint8_t * )&ACKPacket,sizeof(ACKPacket));
+    // Serial.println(writed);
     
+    // const uint8_t * const u8Pt = (const uint8_t * const )&ACKPacket;
+    // uint8_t packageSize = (uint8_t)sizeof(ACKPacket);
+    // uint8_t writtenData = 0;
+    // for (uint8_t i = 0 ; i < packageSize ; i++)
+    // {
+    //     writtenData += Serial.print(u8Pt[i],DEC);
+    //     // writtenData += Serial.write(u8Pt[i]);
+    // }
+    // Serial.println();
+    // Serial.print("Written Data is ");
+    // Serial.println(writtenData);    
+    // Serial.print(">>");
+    // Serial.write((const uint8_t *)endString , sizeof(endString));
+    // Serial.flush();
+    // while (sendedBytes != (uint8_t)sizeof(ACKPacket))
+    // {
+    //     sendedBytes =  Serial.write((const uint8_t * )&ACKPacket,sizeof(ACKPacket));
+    // }
 }
 
 
@@ -384,7 +426,7 @@ void Communucation::getDatas(void)
         dataPacket.batteryVoltage = 3.33;
         dataPacket.descentSpeed = 0;
         dataPacket.TEAM_ID = 1152;
-        dataPacket.package_number = 4;
+        // dataPacket.package_number = 4;
         dataPacket.latitude = 2;
         dataPacket.longtitude = 5;
         
@@ -392,8 +434,8 @@ void Communucation::getDatas(void)
         afterReading = millis(); 
 
         RemainTime = afterReading - beforeReading;
-        dataPacket.Interval= 1000-RemainTime;
-
+        //dataPacket.Interval= 1000-RemainTime;
+        dataPacket.Interval = 700;
         // sendTelemetries();
         sendPackage();
         // delay(50);
@@ -410,7 +452,6 @@ void Communucation::getDatas(void)
         
         while (millis() - afterReading <  dataPacket.Interval )
         {   
-            continue;
             // Serial.parsePacket();
             int LenPackage = Serial.readBytes(Buffer, 500);
             if (LenPackage > 0)
@@ -434,10 +475,12 @@ void Communucation::getDatas(void)
             }
         }
         ACKPacket.ACKType = 2; // Just make ACK Type 2 (END SIGNAL) 
+        ACKPacket.ACK     = 3;
         sendACK();
         
         // Serial.write("E\n"); // communucation ENDED Message.
         package_number +=1;
+        dataPacket.package_number += 1;
         if (COMMAND != 0)
         {
             manualServiceCheck();
@@ -450,10 +493,13 @@ void Communucation::mainLp(void)
 
     if (!systemActivated)
     {
-        static byte STARTS_BUF[10];
-        static bool START_READED = false;
+        static byte STARTS_BUF[3];
+        // static bool START_READED = false;
+        static bool START_READED = true;
+        STARTS_BUF[0] = 5;
+        
         // Serial.parsePacket();
-        int LenBuff = Serial.readBytes(STARTS_BUF, 10);
+        int LenBuff = Serial.readBytes(STARTS_BUF, 3);
         // if (STARTS_BUF[0] == 2 )
         // {
         //     const uint8_t myArray[5] = {1,3,5,7,9};
@@ -563,30 +609,52 @@ void Communucation::mainLp(void)
 
 void Communucation::getProtocolStatus(void)
 {
-    if (Buffer[0]  == NOTHING_MISSED_H)
-    {    
-        HEADER = NOTHING_MISSED_H;
-        memcpy(&gcsPacket,  Buffer , 2); // BU BURDA OLMAMALI
+    // if (Buffer[0]  == NOTHING_MISSED_H)
+    // {    
+    //     HEADER = NOTHING_MISSED_H;
+    //     memcpy(&gcsPacket,  Buffer , 2); // BU BURDA OLMAMALI
 
-    } 
-    else if (Buffer[0] == MISSED_DATA_AV_H)
+    // } 
+    // else if (Buffer[0] == MISSED_DATA_AV_H)
+    // {
+    //     HEADER = MISSED_DATA_AV_H;
+    //     memcpy(&gcsPacket,  Buffer , 2); // BU BURDA OLMAMALI
+    // }
+    // else if (Buffer[0] == VIDEO_SIZE_H) 
+    // {
+    //     HEADER = VIDEO_SIZE_H;
+    //     memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket)); // BU BURDA OLMAMALI
+    // }
+    // else if (Buffer[0] == VIDEO_DATA_H)
+    // {   
+    //     HEADER = VIDEO_DATA_H;
+    //     memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket)); // BU BURDA OLMAMALI
+    // }
+    // else
+    // {
+    //     HEADER = ERROR_H;
+    // }
+    switch (Buffer[0])
     {
-        HEADER = MISSED_DATA_AV_H;
-        memcpy(&gcsPacket,  Buffer , 2); // BU BURDA OLMAMALI
-    }
-    else if (Buffer[0] == VIDEO_SIZE_H) 
-    {
-        HEADER = VIDEO_SIZE_H;
-        memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket)); // BU BURDA OLMAMALI
-    }
-    else if (Buffer[0] == VIDEO_DATA_H)
-    {   
-        HEADER = VIDEO_DATA_H;
-        memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket)); // BU BURDA OLMAMALI
-    }
-    else
-    {
-        HEADER = ERROR_H;
+        case NOTHING_MISSED_H:
+            HEADER = NOTHING_MISSED_H;
+            memcpy(&gcsPacket,  Buffer , 2); // BU BURDA OLMAMALI
+            break;
+        case MISSED_DATA_AV_H:
+            HEADER = MISSED_DATA_AV_H;
+            memcpy(&gcsPacket,  Buffer , 2); // BU BURDA OLMAMALI
+            break;
+        case VIDEO_SIZE_H:
+            HEADER = VIDEO_SIZE_H;
+            memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket)); // BU BURDA OLMAMALI
+            break;
+        case VIDEO_DATA_H:
+            HEADER = VIDEO_DATA_H;
+            memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket)); // BU BURDA OLMAMALI
+            break;    
+        default:
+            HEADER = ERROR_H;
+            break;
     }
 }
 void Communucation::stringCopies(void)
@@ -600,6 +668,10 @@ void Communucation::stringCopies(void)
     gcsPacket.bufferArray[0] = '\0';
     dataPacket.FLIGHT_STATUS = 3; // Normally 0 
     dataPacket.VIDEO_TRANSMISSION_INFO = 5; // Normally 0
+    dataPacket.package_number = 1;
+    
+    ACKPacket.ACKType = 3; // First None
+    ACKPacket.ACK = 4;      //first none
 }
 void Communucation::sendTelemetries(void)
 {
