@@ -84,10 +84,12 @@ class Communucation
         
         uint16_t COMMAND = 0;
         bool systemActivated= false;
+        uint16_t bufferCt = 0;
 
 
         
-        char Buffer[100];
+        uint8_t Buffer[100];
+        uint8_t MAX_GCS_BYTES = 0;
 
      
         const char DELIM[1] = {' '};
@@ -223,7 +225,7 @@ class Communucation
         
         //uint16_t ReachedByte = 0;
         unsigned long REACHED_SIZE = 0;
-        unsigned long VIDEO_SIZE = 0;
+        unsigned long VIDEO_SIZE = 10000000;
         bool videoTransferCompleted = false;
         
 
@@ -258,8 +260,9 @@ class Communucation
             VIDEO_DATA_H        = 3,
             ERROR_H             = 4
         }COMING_HEADER;
+
+
         COMING_HEADER HEADER;
-        
         
         Communucation();                    //constructor.
         

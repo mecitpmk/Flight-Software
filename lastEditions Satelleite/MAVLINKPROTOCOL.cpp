@@ -212,14 +212,18 @@ void Communucation::releasePayload(void)
 
 bool Communucation::waitforResponse(void)
 {
-    getProtocolStatus();
+    // getProtocolStatus();
     COMMAND = gcsPacket.command;  // get Command.
     switch (HEADER)
     {
         case MISSED_DATA_AV_H:
+            ACKPacket.ACKType = 3;
+            ACKPacket.ACK = 1;
             sendTelemetries(); // SEND TELEMETRIES AGAIN.
             break;
         case NOTHING_MISSED_H:
+            ACKPacket.ACKType = 3;
+            ACKPacket.ACK = 4;
             break; // DO NOTHING
         case VIDEO_SIZE_H:
             // Serial.print("V_S Buffer : ");
@@ -249,6 +253,8 @@ bool Communucation::waitforResponse(void)
             }
             break;  
         case ERROR_H : 
+            ACKPacket.ACKType = 3;
+            ACKPacket.ACK = 0;
             //Serial.println("ERROR HAPPENED!");
             break;
         default:
@@ -449,22 +455,42 @@ void Communucation::getDatas(void)
         // Serial.beginPacket(SerialAddress, SerialPort);
         // Serial.printf("I %d", INTERV);
         // Serial.endPacket();
-        
+        bufferCt = 0;
+        bool protocolReaded = false;
         while (millis() - afterReading <  dataPacket.Interval )
         {   
-            // Serial.parsePacket();
-            int LenPackage = Serial.readBytes(Buffer, 500);
-            if (LenPackage > 0)
+            
+            if (!Readed)
             {
-                Readed = true;
-                
-            }            
+                if (Serial.available())
+                {
+                    Buffer[bufferCt++] = (uint8_t)Serial.read();
+                    if (!protocolReaded)
+                    {
+                        getProtocolStatus();
+                        protocolReaded = true ; 
+                        continue;
+                    }
+                    if (bufferCt == MAX_GCS_BYTES)
+                    {
+                        Readed      = true;
+                        memcpy(&gcsPacket,  Buffer , bufferCt-1); // BU BURDA OLMAMALI
+                        memset(Buffer, '\0', sizeof(Buffer));
+                        bufferCt    = 0;
+                        while (Serial.available())
+                        {
+                            Serial.read(); // Clean RX buffer..
+                        }
+                        
+                    }
+                }
+            }
 
-            if (Readed)
+            else
             {
                 Readed = false;
+                protocolReaded = false;
                 waitforResponse();
-                memset(Buffer, '\0', sizeof(Buffer));
                 if (gcsPacket.bufferArray[0] != '\0')
                 {
                     memset(gcsPacket.bufferArray , '\0',sizeof(gcsPacket.bufferArray));
@@ -638,19 +664,23 @@ void Communucation::getProtocolStatus(void)
     {
         case NOTHING_MISSED_H:
             HEADER = NOTHING_MISSED_H;
-            memcpy(&gcsPacket,  Buffer , 2); // BU BURDA OLMAMALI
+            MAX_GCS_BYTES = 2;
+            // memcpy(&gcsPacket,  Buffer , 2); // BU BURDA OLMAMALI
             break;
         case MISSED_DATA_AV_H:
             HEADER = MISSED_DATA_AV_H;
-            memcpy(&gcsPacket,  Buffer , 2); // BU BURDA OLMAMALI
+            MAX_GCS_BYTES = 2;
+            // memcpy(&gcsPacket,  Buffer , 2); // BU BURDA OLMAMALI
             break;
         case VIDEO_SIZE_H:
             HEADER = VIDEO_SIZE_H;
-            memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket)); // BU BURDA OLMAMALI
+            MAX_GCS_BYTES = 104;
+            // memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket)); // BU BURDA OLMAMALI
             break;
         case VIDEO_DATA_H:
             HEADER = VIDEO_DATA_H;
-            memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket)); // BU BURDA OLMAMALI
+            MAX_GCS_BYTES = 104;
+            // memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket)); // BU BURDA OLMAMALI
             break;    
         default:
             HEADER = ERROR_H;

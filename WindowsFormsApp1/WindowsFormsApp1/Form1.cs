@@ -235,8 +235,8 @@ namespace WindowsFormsApp1
                 serialPort1.Write(makedPackage, 0, makedPackage.Length);
                 if (isVideoEnabled && !isVideoSended)
                 {
-
-                    serialPort1.Write(videoBuffer , 0, 450);
+                    Console.WriteLine("VIDEO ENABLEDMIS..");
+                    serialPort1.Write(videoBuffer , 0, 100);
                     Console.WriteLine("video DAta sneded //////////////////////////////");
                 }
                 else if (isVideoSended)
@@ -293,6 +293,7 @@ namespace WindowsFormsApp1
                 case (byte)ACK_TYPE.noneSignal:
                     Console.WriteLine("NONE SIGNAL CAME");
                     ackValues = ACK_VALUES.noneSignalEnabled;
+
                     break;
                 default:
                     break;
@@ -307,7 +308,7 @@ namespace WindowsFormsApp1
 
                     //}
                     Console.WriteLine("video data sucesss");
-                    this.Invoke(new EventHandler(sendGCSFrameS));
+                    //this.Invoke(new EventHandler(sendGCSFrameS));
                     break;
 
                 case ACK_VALUES.videoDataFAILED:
@@ -321,7 +322,7 @@ namespace WindowsFormsApp1
                     //}
                     Console.WriteLine("video data fail");
 
-                    this.Invoke(new EventHandler(sendGCSFrameS));
+                    //this.Invoke(new EventHandler(sendGCSFrameS));
                     break;
 
                 case ACK_VALUES.videoDataENDED:
@@ -335,13 +336,14 @@ namespace WindowsFormsApp1
                     break;
                 case ACK_VALUES.noneSignalEnabled:
                     Console.WriteLine("NONE SIGNAL");
+                    this.Invoke(new EventHandler(sendGCSFrameS));
                     break;
                 default:
                     break;
             }
            
         }
-        public void solveAckPackage() // Burda gelen ACK Package'sini çözümlüyoruz. // object sender , EventArgs e
+        public void solveAckPackage(object sender, EventArgs e) // Burda gelen ACK Package'sini çözümlüyoruz. // object sender , EventArgs e
         {
             //Console.WriteLine($"simdi ACK Cozumluyoruz... {ackArr.Length}");
             IntPtr emptyPointer = Marshal.AllocHGlobal(ackArr.Length);
@@ -355,7 +357,7 @@ namespace WindowsFormsApp1
 
         }
 
-        public void solveDataPackage() //object sender , EventArgs e
+        public void solveDataPackage(object sender, EventArgs e) //object sender , EventArgs e
         {
             Console.WriteLine("Data package is solving......");
             int lengthForPackage = 53;
@@ -386,7 +388,7 @@ namespace WindowsFormsApp1
                 {
                     gcsPacket.tagType = 3;
                     gcsPacket.command = 0;
-                    for (int i = 0; i < 450; i++)
+                    for (int i = 0; i < 100; i++)
                     {
                         videoBuffer[i] = 1;
                     }
@@ -478,18 +480,29 @@ namespace WindowsFormsApp1
                     //Console.WriteLine($"Readed : {readedByte}");
                     if (readedByte == dataFrameStartHeader)
                     {
-                        packetArrayCt = 0;
-                        isPayloadReading = true;
-                        isPayloadCompleted = false;
-                        packetArr[packetArrayCt++] = readedByte;
+                        packetArrayCt               = 0;
+                        isPayloadReading            = true;
+                        isPayloadCompleted          = false;
+                        
+                        isAckReading                = false; // Sonradan added..
+                        isAckCompleted              = false; // Sonradan added..
+                        ackArrayCt                  = 0;
+
+                        packetArr[packetArrayCt++]  = readedByte;
                         Console.WriteLine("DATA FRAME START CAME..");
                     }
                     else if (readedByte == ackFrameStartHeader)
                     {
                         Console.WriteLine("**************ACKFRAME*****************");
-                        isAckReading = true;
-                        isAckCompleted = false;
-                        ackArrayCt = 0;
+                        isAckReading         = true;
+                        isAckCompleted       = false;
+                        ackArrayCt           = 0;
+
+                        isPayloadCompleted   = false; // Sonradan added..
+                        isPayloadReading     = false; // Sonradan added..
+                        packetArrayCt        = 0;
+
+
                         ackArr[ackArrayCt++] = readedByte;
                     }
                     else
@@ -499,16 +512,20 @@ namespace WindowsFormsApp1
                             packetArr[packetArrayCt++] = readedByte;
                             if (packetArrayCt == 53)
                             {
-                                packetArrayCt = 0;
-                                isPayloadReading = false;
-                                isPayloadCompleted = true;
+                                packetArrayCt       = 0;
+                                isPayloadReading    = false;
+                                isPayloadCompleted  = true;
+                                sendingPermission   = true;
                                 Console.WriteLine("PAYLOAD COMPLETED OLMUŞ..");
                                 //for (int i = 0; i<53; i++)
                                 //{
                                 //    Console.WriteLine(packetArr[i]);
                                 //}
-                                solveDataPackage();
+                                //solveDataPackage();
+
+                                this.Invoke(new EventHandler(solveDataPackage));
                                 Console.WriteLine($"Unpackaged data package_no : {unPackageData.package_number}");
+                                this.Invoke(new EventHandler(sendGCSFrameS));
                                 //Console.WriteLine($"Unpackaged data Altitude : {unPackageData.altitude}");
                             }
                         }
@@ -521,8 +538,10 @@ namespace WindowsFormsApp1
                                 isAckReading = false;
                                 isAckCompleted = true;
                                 Console.WriteLine("ACK COMPLETED OLMUŞ..");
-                                solveAckPackage();
+                                //solveAckPackage();
+                                this.Invoke(new EventHandler(solveAckPackage));
                                 Console.WriteLine($"Ack Type : {unpacageACK.ACKType} , ACK  : {unpacageACK.ACK}");
+                                this.Invoke(new EventHandler(ackPackageResponse));
                                 //for (int i = 0; i < 3; i++)
                                 //{
                                 //    Console.WriteLine(ackArr[i]);
