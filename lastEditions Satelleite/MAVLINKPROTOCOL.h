@@ -72,18 +72,18 @@ class Communucation
 
 
 
-        bool manupulationFalling = false;
+        // bool manupulationFalling = false;
 
-        bool seperatedBefore = false;
-        bool releaseCommand = false;
-        bool manualMotorActive = false;
-        bool fixAltitude = false;
-        bool fixAltTrueBefore = false;
+        // bool seperatedBefore = false;
+        // bool releaseCommand = false;
+        // bool manualMotorActive = false;
+        // bool fixAltitude = false;
+        // bool fixAltTrueBefore = false;
         const uint16_t testMotorsInterval = 10000;
         unsigned long motorElapsedTime ; 
         
         uint16_t COMMAND = 0;
-        bool systemActivated= false;
+        // bool systemActivated= false;
         uint16_t bufferCt = 0;
 
 
@@ -93,7 +93,7 @@ class Communucation
 
      
         const char DELIM[1] = {' '};
-        bool Readed = false;
+        // bool Readed = false;
 
         uint16_t INTERV ;
        
@@ -212,6 +212,31 @@ class Communucation
                     4-> None
             */
         };
+
+        typedef union 
+        {
+
+            struct 
+            {
+                uint8_t Readed              : 1 ;
+                uint8_t protocolReaded      : 1 ;
+                uint8_t systemActivated     : 1 ;
+
+                uint8_t startReaded         : 1 ;
+                uint8_t fixAltitude         : 1 ;
+                uint8_t fixAltitudeBefore   : 1 ;
+                uint8_t seperatedBefore     : 1 ;
+                
+                uint8_t manupulationFalling : 1 ; 
+
+            }FLAGS;
+            
+            uint8_t resetFlag;
+            
+        }controlVariables;
+
+        controlVariables controlVar;
+        
         
         // Search for default parameeter for struct
             // .FrameType = 0 gibi.
@@ -247,7 +272,7 @@ class Communucation
         struct ACKFrame ACKPacket   ;
         struct GCSFrame gcsPacket   ;
         
-        const int pwmPin = 4;
+        const uint8_t  pwmPin = 4;
         char telemetryBuffer[MAX_TELEMETRY_LENGTH];
 
 

@@ -3,7 +3,8 @@
 // #include "STORAGE.h"
 // #include "FS.h" // NOT NECESSARILY NEEDED.. DONT FORGET TO REMOVE ALSO PUT "#pragma once" words into header files.
 
-
+#define TRUE 0b1 
+#define FALSE 0b0
 
 //#include <string.h>
 //#include <WiFiSerial.h>
@@ -79,18 +80,18 @@ void Communucation::readPressure(void)
 }
 void Communucation::readAltitude(void)
 {
-    if (manupulationFalling &&  !fixAltitude)
+    if (controlVar.FLAGS.manupulationFalling &&  !controlVar.FLAGS.fixAltitude)
     {
         *(old_datas.altPtr-1) = data.altitude;
         data.altitude = data.altitude -2;
         *old_datas.altPtr = data.altitude;
         //setNewStatus();
     }
-    else if (!manupulationFalling && !fixAltitude)
+    else if (!controlVar.FLAGS.manupulationFalling && !controlVar.FLAGS.fixAltitude)
     {
         if (data.altitude > 798 && data.altitude < 802)
         {
-            manupulationFalling = true;
+            controlVar.FLAGS.manupulationFalling = true;
         }
         *(old_datas.altPtr-1) = data.altitude;
         data.altitude = data.altitude+2;
@@ -120,29 +121,28 @@ void Communucation::setNewStatus(void)
         dataPacket.FLIGHT_STATUS  =    1;
     }
 
-    else if (package_number != 1 &&  403 > data.altitude && 397 < data.altitude && !seperatedBefore)
+    else if (package_number != 1 &&  403 > data.altitude && 397 < data.altitude && !controlVar.FLAGS.seperatedBefore)
     {
         // 395<yükseklik<405 ve dahaönceAyrışmadıYSA
         // Ayrışma Mekanizmasını Devreye Sok.
         
         // strcpy(data.FLIGHT_STATUS,"SEPERATING");
         dataPacket.FLIGHT_STATUS  =    2;
-        seperatedBefore = true;
+        controlVar.FLAGS.seperatedBefore = TRUE;
+
     }
 
-    else if (package_number != 1 && data.altitude <*(old_datas.altPtr-1) && seperatedBefore && data.altitude >= 190 && data.altitude <= 210 && !fixAltTrueBefore)
+    else if (package_number != 1 && data.altitude <*(old_datas.altPtr-1) && controlVar.FLAGS.seperatedBefore && data.altitude >= 190 && data.altitude <= 210 && !controlVar.FLAGS.fixAltitudeBefore)
     {
         //      190 < x < 210 // 185
         Serial.println("NOW ALTITUDE IS FIXING!!!!!!!!*********");
-        fixAltitude = true;
-        fixAltTrueBefore = true;
-        
-        // strcpy(data.FLIGHT_STATUS,"FIXEDALT");
+        controlVar.FLAGS.fixAltitude = TRUE;
+        controlVar.FLAGS.fixAltitudeBefore = TRUE;
         dataPacket.FLIGHT_STATUS  =    5;
         // Burada hemen motora güç ver çünkü diğer yerlere gidene kadar time elapsed olacak.
     }
 
-    else if (package_number != 1 && data.altitude < *(old_datas.altPtr-1) && seperatedBefore)
+    else if (package_number != 1 && data.altitude < *(old_datas.altPtr-1) && controlVar.FLAGS.seperatedBefore)
     {
         // Önceki yükselik > şimdiyükselik ve dahaönceAyrıştıysa.
         //
@@ -151,7 +151,7 @@ void Communucation::setNewStatus(void)
         dataPacket.FLIGHT_STATUS  =    4;
     }
 
-    else if (package_number != 1 && seperatedBefore && data.altitude >= 0  && data.altitude < 5)
+    else if (package_number != 1 && controlVar.FLAGS.seperatedBefore && data.altitude >= 0  && data.altitude < 5)
     {
         // AYrıştıysa ve  0<= Yükseklik < 5
         // strcpy(data.FLIGHT_STATUS,"RESCUE");
@@ -456,24 +456,26 @@ void Communucation::getDatas(void)
         // Serial.printf("I %d", INTERV);
         // Serial.endPacket();
         bufferCt = 0;
-        bool protocolReaded = false;
+        // bool protocolReaded = false;
+        // uint8_t testVariable = 0;
         while (millis() - afterReading <  dataPacket.Interval )
         {   
             
-            if (!Readed)
+            if (!controlVar.FLAGS.Readed) // if (Readed == 0b00000000 || Readed == 0b00000001)
             {
                 if (Serial.available())
                 {
                     Buffer[bufferCt++] = (uint8_t)Serial.read();
-                    if (!protocolReaded)
+                    if (!controlVar.FLAGS.protocolReaded) // Readed == 0b00000000
                     {
                         getProtocolStatus();
-                        protocolReaded = true ; 
+                        // protocolReaded = true ; // Readed =  0b00000001
+                        controlVar.FLAGS.protocolReaded = TRUE;
                         continue;
                     }
                     if (bufferCt == MAX_GCS_BYTES)
                     {
-                        Readed      = true;
+                        controlVar.FLAGS.Readed = TRUE;
                         memcpy(&gcsPacket,  Buffer , bufferCt-1); // BU BURDA OLMAMALI
                         memset(Buffer, '\0', sizeof(Buffer));
                         bufferCt    = 0;
@@ -488,8 +490,9 @@ void Communucation::getDatas(void)
 
             else
             {
-                Readed = false;
-                protocolReaded = false;
+                
+                controlVar.FLAGS.Readed = FALSE;
+                controlVar.FLAGS.protocolReaded = FALSE;
                 waitforResponse();
                 if (gcsPacket.bufferArray[0] != '\0')
                 {
@@ -517,11 +520,12 @@ void Communucation::getDatas(void)
 void Communucation::mainLp(void)
 {
 
-    if (!systemActivated)
+    if (!controlVar.FLAGS.systemActivated)
     {
         static byte STARTS_BUF[3];
         // static bool START_READED = false;
-        static bool START_READED = true;
+        // static bool START_READED = true;
+        controlVar.FLAGS.startReaded = 1;
         STARTS_BUF[0] = 5;
         
         // Serial.parsePacket();
@@ -537,7 +541,8 @@ void Communucation::mainLp(void)
         
         if (LenBuff > 0)
         {
-            START_READED = true;
+            // START_READED = true;
+            controlVar.FLAGS.startReaded = 1;
             // Serial.println("STarted babba..");
             // for (uint8_t i = 0 ; i < 4 ; i++)
             // {
@@ -548,12 +553,12 @@ void Communucation::mainLp(void)
             //     // Serial.println("Bu sekildeymis abi..");
             // }
         }
-        if (START_READED)
+        if (controlVar.FLAGS.startReaded)
         {
             if (STARTS_BUF[0] == 5) // STARTS COMMAND..
             {
-                systemActivated = true;
-
+                // systemActivated = true;
+                controlVar.FLAGS.systemActivated = 1;
                 /* ! Newly Added ! Purpose : When the command come from GCS,
                         Direcly make the calibration ESC! 
                         Verified-TESTED : NONE */
@@ -583,7 +588,7 @@ void Communucation::mainLp(void)
       // DO I add the sensor loop here? Maybe gps should be with the others? Maybe not?, Its just that gps update might need to be faster than 1Hz.
         // sensors.flushGPSData(); //Gps Update
         getDatas();
-        if (fixAltitude) // false
+        if (controlVar.FLAGS.fixAltitude) // false
         {
             unsigned long altFix = millis();
             while (millis() - altFix <= testMotorsInterval)
@@ -593,7 +598,8 @@ void Communucation::mainLp(void)
                 getDatas();
             }
             //Serial.println("-------------- IRTIFA SABITLEME TAMAMLANDI.-------------");
-            fixAltitude = false;
+            controlVar.FLAGS.fixAltitude = FALSE;
+            // fixAltitude = false;
             // Set Motor Speed To Normal IN RIGHT HERE!!.
         }
     }
@@ -702,6 +708,7 @@ void Communucation::stringCopies(void)
     
     ACKPacket.ACKType = 3; // First None
     ACKPacket.ACK = 4;      //first none
+    controlVar.resetFlag = FALSE;
 }
 void Communucation::sendTelemetries(void)
 {
