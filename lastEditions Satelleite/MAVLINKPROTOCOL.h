@@ -125,7 +125,7 @@ class Communucation
             uint8_t bufferSize;      // For example video data is 11111 Buffer size will be = 5
             
             uint8_t bufferArray[100]; // Max 500 Byte!
-        };
+        }gcsPacket;
 
         /*
             Ground Station'dan datayı write ederken,
@@ -179,7 +179,7 @@ class Communucation
             // Add time infos..
             
             
-        } __attribute__((packed)) ;
+        } __attribute__((packed)) dataPacket;
         
         /*
             Read first byte(first 8 bits) from GCS and
@@ -211,9 +211,9 @@ class Communucation
                     3-> VS ENDED
                     4-> None
             */
-        };
+        }ACKPacket;
 
-        typedef union 
+        union // I am not giving that union as a param so make it global
         {
 
             struct 
@@ -233,9 +233,9 @@ class Communucation
             
             uint8_t resetFlag;
             
-        }controlVariables;
+        }controlVar = {.resetFlag = 0};
 
-        controlVariables controlVar;
+        
         
         
         // Search for default parameeter for struct
@@ -268,26 +268,28 @@ class Communucation
 
         // MOTORS..
         // Servo ESC; // create servo object to control the ESC
-        struct dataFrame dataPacket ;
-        struct ACKFrame ACKPacket   ;
-        struct GCSFrame gcsPacket   ;
+
+        /* DECLARED ALLREADY END OF STRUCTURE */
+        // struct dataFrame dataPacket ; 
+        // struct ACKFrame ACKPacket   ;
+        // struct GCSFrame gcsPacket   ;
         
         const uint8_t  pwmPin = 4;
         char telemetryBuffer[MAX_TELEMETRY_LENGTH];
 
 
         // WiFiUDP udp;
-        typedef enum
+        enum
         {
             NOTHING_MISSED_H    = 0,
             MISSED_DATA_AV_H    = 1,
             VIDEO_SIZE_H        = 2,
             VIDEO_DATA_H        = 3,
             ERROR_H             = 4
-        }COMING_HEADER;
+        }HEADER = NOTHING_MISSED_H;
 
 
-        COMING_HEADER HEADER;
+
         
         Communucation();                    //constructor.
         
