@@ -41,16 +41,6 @@
 */
 
 
-DATACLASS::DATACLASS()
-{
-    altitude = 10;   // Yukseklik
-    pressure = 0;   //Basınç
-    temperature = 0; //Sıcaklık
-    turn_number = 0; // Dönüş Sayısı
-    pitch = 0; // Pitch
-    yaw = 0; // Yaw
-    roll = 0; // Roll
-}
 OLDDATACLASS::OLDDATACLASS()
 {
       
@@ -65,7 +55,7 @@ Communucation::Communucation()
 {
     // Normally they will be deleted in there;b
     // elapsed_time = millis();
-    *old_datas.altPtr = data.altitude;
+    *old_datas.altPtr = dataPacket.altitude;
     
     
 }
@@ -73,8 +63,8 @@ Communucation::Communucation()
 void Communucation::readPressure(void)
 {
     // Adafruit will be in here
-    data.pressure = data.pressure  +1;
-    *old_datas.presPtr = data.pressure ;
+    dataPacket.pressure = dataPacket.pressure  +1;
+    *old_datas.presPtr = dataPacket.pressure ;
 
 
 }
@@ -82,117 +72,117 @@ void Communucation::readAltitude(void)
 {
     if (controlVar.FLAGS.manupulationFalling &&  !controlVar.FLAGS.fixAltitude)
     {
-        *(old_datas.altPtr-1) = data.altitude;
-        data.altitude = data.altitude -2;
-        *old_datas.altPtr = data.altitude;
+        *(old_datas.altPtr-1) = dataPacket.altitude;
+        dataPacket.altitude = dataPacket.altitude -2;
+        *old_datas.altPtr = dataPacket.altitude;
         //setNewStatus();
     }
     else if (!controlVar.FLAGS.manupulationFalling && !controlVar.FLAGS.fixAltitude)
     {
-        if (data.altitude > 798 && data.altitude < 802)
+        if (dataPacket.altitude > 798 && dataPacket.altitude < 802)
         {
             controlVar.FLAGS.manupulationFalling = true;
         }
-        *(old_datas.altPtr-1) = data.altitude;
-        data.altitude = data.altitude+2;
-        *old_datas.altPtr = data.altitude;
+        *(old_datas.altPtr-1) = dataPacket.altitude;
+        dataPacket.altitude = dataPacket.altitude+2;
+        *old_datas.altPtr = dataPacket.altitude;
         //setNewStatus();
     }
     setNewStatus();
-    // data.altitude = data.altitude+1;
-    // *old_datas.altPtr = data.altitude;
+    // dataPacket.altitude = dataPacket.altitude+1;
+    // *old_datas.altPtr = dataPacket.altitude;
     // setNewStatus();
 
 }
 void Communucation::setNewStatus(void)
 {
-    if (package_number == 1 || (data.altitude >= 0 &&  data.altitude < 3) )
+    if (package_number == 1 || (dataPacket.altitude >= 0 &&  dataPacket.altitude < 3) )
     {
         // ilk açıldığında ve yükseklik   =   0 <= yükseklik < 3
         // strcpy(data.FLIGHT_STATUS,"WAITING");
-        dataPacket.FLIGHT_STATUS  =    0;
+        dataPacket.FLIGHT_STATUS  = STAT_WAITING;
     }
 
-    else if (package_number != 1 && data.altitude > *(old_datas.altPtr-1) && data.altitude  >= 4)
+    else if (package_number != 1 && dataPacket.altitude > *(old_datas.altPtr-1) && dataPacket.altitude  >= 4)
     {
         // Şimdikik yükseklik  > önceki yükseklik ve  yükselik >= 4
         
         // strcpy(data.FLIGHT_STATUS,"RISING");
-        dataPacket.FLIGHT_STATUS  =    1;
+        dataPacket.FLIGHT_STATUS  = STAT_RISING;
     }
 
-    else if (package_number != 1 &&  403 > data.altitude && 397 < data.altitude && !controlVar.FLAGS.seperatedBefore)
+    else if (package_number != 1 &&  403 > dataPacket.altitude && 397 < dataPacket.altitude && !controlVar.FLAGS.seperatedBefore)
     {
         // 395<yükseklik<405 ve dahaönceAyrışmadıYSA
         // Ayrışma Mekanizmasını Devreye Sok.
         
         // strcpy(data.FLIGHT_STATUS,"SEPERATING");
-        dataPacket.FLIGHT_STATUS  =    2;
-        controlVar.FLAGS.seperatedBefore = TRUE;
+        dataPacket.FLIGHT_STATUS            = STAT_SEPERATING    ;
+        controlVar.FLAGS.seperatedBefore    = TRUE               ;
 
     }
 
-    else if (package_number != 1 && data.altitude <*(old_datas.altPtr-1) && controlVar.FLAGS.seperatedBefore && data.altitude >= 190 && data.altitude <= 210 && !controlVar.FLAGS.fixAltitudeBefore)
+    else if (package_number != 1 && dataPacket.altitude <*(old_datas.altPtr-1) && controlVar.FLAGS.seperatedBefore && dataPacket.altitude >= 190 && dataPacket.altitude <= 210 && !controlVar.FLAGS.fixAltitudeBefore)
     {
         //      190 < x < 210 // 185
         Serial.println("NOW ALTITUDE IS FIXING!!!!!!!!*********");
-        controlVar.FLAGS.fixAltitude = TRUE;
-        controlVar.FLAGS.fixAltitudeBefore = TRUE;
-        dataPacket.FLIGHT_STATUS  =    5;
+        controlVar.FLAGS.fixAltitude        = TRUE           ;
+        controlVar.FLAGS.fixAltitudeBefore  = TRUE           ;
+        dataPacket.FLIGHT_STATUS            = STAT_FIXEDALT  ;
         // Burada hemen motora güç ver çünkü diğer yerlere gidene kadar time elapsed olacak.
     }
 
-    else if (package_number != 1 && data.altitude < *(old_datas.altPtr-1) && controlVar.FLAGS.seperatedBefore)
+    else if (package_number != 1 && dataPacket.altitude < *(old_datas.altPtr-1) && controlVar.FLAGS.seperatedBefore)
     {
         // Önceki yükselik > şimdiyükselik ve dahaönceAyrıştıysa.
         //
         
         // strcpy(data.FLIGHT_STATUS,"PAYFALL");
-        dataPacket.FLIGHT_STATUS  =    4;
+        dataPacket.FLIGHT_STATUS  =  STAT_PAYFALL;
     }
 
-    else if (package_number != 1 && controlVar.FLAGS.seperatedBefore && data.altitude >= 0  && data.altitude < 5)
+    else if (package_number != 1 && controlVar.FLAGS.seperatedBefore && dataPacket.altitude >= 0  && dataPacket.altitude < 5)
     {
         // AYrıştıysa ve  0<= Yükseklik < 5
         // strcpy(data.FLIGHT_STATUS,"RESCUE");
-        dataPacket.FLIGHT_STATUS  =    6;
+        dataPacket.FLIGHT_STATUS  =  STAT_RESCUE;
     }
 
-    else if (package_number != 1 && data.altitude < *(old_datas.altPtr-1))
+    else if (package_number != 1 && dataPacket.altitude < *(old_datas.altPtr-1))
     {
         // Şimdiki Yükseklik < Önceki Yükseklik.
         // strcpy(data.FLIGHT_STATUS,"FLIGHTFALL");
-        dataPacket.FLIGHT_STATUS  =    3;
+        dataPacket.FLIGHT_STATUS  =  STAT_FLIGHTFALL;
     }
 }
 void Communucation::readTemperature(void)
 {
-//   data.temperature = (float)sensors.bmpData.temperature; // An example read from sensor, beware that this just reads the existing data and a flush before a read is necessary to get new data.
-    data.temperature = data.temperature +1;
-    *old_datas.tempPtr = data.temperature;
+//   dataPacket.temperature = (float)sensors.bmpData.temperature; // An example read from sensor, beware that this just reads the existing data and a flush before a read is necessary to get new data.
+    // dataPacket.temperature = dataPacket.temperature +1;
+    *old_datas.tempPtr = dataPacket.temperature;
 }
 void Communucation::readTurnNumber(void)
 {
-    data.turn_number = data.turn_number+1;
-    *old_datas.turnPtr = data.turn_number;
+    // dataPacket.turn_number = dataPacket.turn_number+1;
+    *old_datas.turnPtr = dataPacket.turn_number;
 }
 
 void Communucation::readPitch(void)
 {
-    data.pitch = data.pitch+1;
-    *old_datas.pitchPtr = data.pitch;
+    // dataPacket.pitch = dataPacket.pitch+1;
+    *old_datas.pitchPtr = dataPacket.pitch;
 }
 
 void Communucation::readRoll(void)
 {
-    data.roll = data.roll+1;    
-    *old_datas.rollPtr = data.roll;
+    // dataPacket.roll = dataPacket.roll+1;    
+    *old_datas.rollPtr = dataPacket.roll;
 }
 
 void Communucation::readYaw(void)
 {
-    data.yaw = data.yaw+1;
-    *old_datas.yawPtr = data.yaw;
+    // dataPacket.yaw = dataPacket.yaw+1;
+    *old_datas.yawPtr = dataPacket.yaw;
 }
 
 
@@ -217,44 +207,54 @@ bool Communucation::waitforResponse(void)
     switch (HEADER)
     {
         case MISSED_DATA_AV_H:
-            ACKPacket.ACKType = 3;
-            ACKPacket.ACK = 1;
+            ACKPacket.ACKType   = ACKType_NONE  ;
+            ACKPacket.ACK       = ACK_SUCCESS   ;
             sendTelemetries(); // SEND TELEMETRIES AGAIN.
             break;
         case NOTHING_MISSED_H:
-            ACKPacket.ACKType = 3;
-            ACKPacket.ACK = 4;
+            ACKPacket.ACKType   = ACKType_NONE  ;
+            ACKPacket.ACK       = ACK_NONE      ;
             break; // DO NOTHING
         case VIDEO_SIZE_H:
             // Serial.print("V_S Buffer : ");
             // Serial.println(gcsPacket.bufferArray);
-            VIDEO_SIZE = strtoul((const char*)gcsPacket.bufferArray, NULL, 10); // Video BinarySize to Unsigned Long
-            // strcpy(SendingStringBuffer, "VS 1\n");
-            ACKPacket.ACKType = 0;
-            ACKPacket.ACK = 1;
-            // Serial.print("Video Size Reached.. ");
-            //Serial.println(VIDEO_SIZE);
-            break;
-        case VIDEO_DATA_H:
-            REACHED_SIZE += (int)strlen((const char*)gcsPacket.bufferArray);
-            //storage.writeVideo(SD,gcsPacket.bufferArray);
-            ACKPacket.ACKType = 1;
-            if (REACHED_SIZE >= VIDEO_SIZE)
+            if (!controlVar.FLAGS.videoSizeTransferred)
             {
-                // strcpy(SendingStringBuffer, "V 3\n");
-                ACKPacket.ACK = 2;
+                VIDEO_SIZE = strtoul((const char*)gcsPacket.bufferArray, NULL, 10); // Video BinarySize to Unsigned Long
+                // strcpy(SendingStringBuffer, "VS 1\n");
+                ACKPacket.ACKType                       = ACKType_VS  ;
+                ACKPacket.ACK                           = ACK_SUCCESS ;
+                controlVar.FLAGS.videoSizeTransferred   = TRANSFER_COMPLETED        ;
+                // Serial.print("Video Size Reached.. ");
+                //Serial.println(VIDEO_SIZE);
+            }
+            break;
+
+        case VIDEO_DATA_H:
+
+            if (!controlVar.FLAGS.videoTransferCompleted && controlVar.FLAGS.videoSizeTransferred)
+            {
+                REACHED_SIZE += (int)strlen((const char*)gcsPacket.bufferArray);
+                //storage.writeVideo(SD,gcsPacket.bufferArray);
+                ACKPacket.ACKType = ACKType_VID;
+                if (REACHED_SIZE >= VIDEO_SIZE)
+                {
+                    ACKPacket.ACK = ACK_VID_COMP;
+                    controlVar.FLAGS.videoTransferCompleted = TRANSFER_COMPLETED;
+                }
+                else
+                {
+                    ACKPacket.ACK = ACK_SUCCESS;
+                }
             }
             else
             {
-                ACKPacket.ACK = 1;
-                // strcpy(SendingStringBuffer, "V 1\n");
-                // Serial.println("V1");
-                //Serial.println((uint16_t)strlen(Buffer));
+                ACKPacket.ACK = ACK_VID_COMP;
             }
             break;  
         case ERROR_H : 
-            ACKPacket.ACKType = 3;
-            ACKPacket.ACK = 0;
+            ACKPacket.ACKType   = ACKType_NONE ;
+            ACKPacket.ACK       = ACK_UNSUCCESS;
             //Serial.println("ERROR HAPPENED!");
             break;
         default:
@@ -270,98 +270,35 @@ void Communucation::sendPackage(void)
 {
     // send InformationFrame
     // send dataFrame
-    // Serial.beginPacket(SerialAddress, SerialPort);
-    // while (true)
-    // {
-    //     if (Serial.availableForWrite() >= (uint8_t)sizeof(dataPacket))
-    //     {
 
-    //         Serial.write((const uint8_t * )&dataPacket,sizeof(dataPacket));
-    //         Serial.flush();
-    //         break;
-    //     }
-    //     else Serial.flush();
-    // }
-    // const char endString[2] = {'\n','\r'};
 
+    //if (Serial.availableForWrite() >= (uint8_t)sizeof(dataPacket))
     Serial.write((const uint8_t * )&dataPacket,sizeof(dataPacket));
-    // Serial.println(writed);
-
-    // const uint8_t * const u8Pt = (const uint8_t * const )&dataPacket;
-    // uint8_t packageSize = (uint8_t)sizeof(dataPacket);
-    // uint8_t writtenData = 0;
-    // for (uint8_t i = 0 ; i < packageSize ; i++)
-    // {
-    //     writtenData += Serial.print(u8Pt[i],DEC);
-    //     // writtenData += Serial.write(u8Pt[i]);
-    // }
-    // Serial.println();
-    // Serial.print("Written Data is ");
-    // Serial.println(writtenData);    
-    
-    // Serial.print(">>");
-
-    // Serial.write((const uint8_t * )endString , sizeof(endString));
-    // Serial.flush();
-    // Serial.endPacket();
 }
 
 void Communucation::sendACK(void)
 {
      // send InformationFrame   
      // send ACKFrame
-    
-    // Serial.beginPacket(SerialAddress, SerialPort);
-    // Serial.endPacket();
-    // while (true)
-    // {
-    //     if (Serial.availableForWrite() >= (uint8_t)sizeof(ACKPacket))
-    //     {
 
-    //         Serial.write((const uint8_t * )&ACKPacket,sizeof(ACKPacket));
-    //         Serial.flush();
-    //         break;
-    //     }
-    //     else Serial.flush();
-    // }
-    // const char endString[2] = {'\n','\r'};
-
+    // if (Serial.availableForWrite() >= (uint8_t)sizeof(ACKPacket))
     Serial.write((const uint8_t * )&ACKPacket,sizeof(ACKPacket));
-    // Serial.println(writed);
-    
-    // const uint8_t * const u8Pt = (const uint8_t * const )&ACKPacket;
-    // uint8_t packageSize = (uint8_t)sizeof(ACKPacket);
-    // uint8_t writtenData = 0;
-    // for (uint8_t i = 0 ; i < packageSize ; i++)
-    // {
-    //     writtenData += Serial.print(u8Pt[i],DEC);
-    //     // writtenData += Serial.write(u8Pt[i]);
-    // }
-    // Serial.println();
-    // Serial.print("Written Data is ");
-    // Serial.println(writtenData);    
-    // Serial.print(">>");
-    // Serial.write((const uint8_t *)endString , sizeof(endString));
-    // Serial.flush();
-    // while (sendedBytes != (uint8_t)sizeof(ACKPacket))
-    // {
-    //     sendedBytes =  Serial.write((const uint8_t * )&ACKPacket,sizeof(ACKPacket));
-    // }
+
 }
 
 
 void Communucation::manualServiceCheck(void)
 {
     
-    if (COMMAND == 88) // Manuel Ayrışma...
+    if ( 88 == COMMAND ) // Manuel Ayrışma...
     {
         releasePayload();
     }
-    else if (COMMAND == 77) // Manuel Tahrik (MOTOR) for [TESTING] PERVANE
+    else if ( 77 == COMMAND  ) // Manuel Tahrik (MOTOR) for [TESTING] PERVANE
     {
         manualmotorActivation(true);
     }
-    else if (COMMAND == 99) // NOT TESTING JUST MANUAL TAHRIK ALL THE TIME
+    else if ( 99 == COMMAND ) // NOT TESTING JUST MANUAL TAHRIK ALL THE TIME
     {
         manualmotorActivation(false);
     }
@@ -374,7 +311,7 @@ void Communucation::manualmotorActivation(bool fortesting)
     {
         // Motors run 10 seconds for testing.
         motorElapsedTime = millis();
-        bool tenSecond = false;
+        // bool tenSecond = false;
         // ESC.write(20);
         while (millis() - motorElapsedTime <= testMotorsInterval)
         {
@@ -422,24 +359,23 @@ void Communucation::getDatas(void)
 
         // sensors.flushGPSData();
 
-        dataPacket.altitude = 32.11;
-        dataPacket.pressure = 11.333;
-        dataPacket.temperature = 15;
-        dataPacket.turn_number = 1;
-        dataPacket.pitch = 7.11;
-        dataPacket.yaw = -2.11;
-        dataPacket.roll = 4.11;
-        dataPacket.batteryVoltage = 3.33;
-        dataPacket.descentSpeed = 0;
-        dataPacket.TEAM_ID = 1152;
+        dataPacket.altitude         = 32.11 ;
+        dataPacket.pressure         = 11.333;
+        dataPacket.temperature      = 15    ;
+        dataPacket.turn_number      = 1     ;
+        dataPacket.pitch            = 7.11  ;
+        dataPacket.yaw              = -2.11 ;
+        dataPacket.roll             = 4.11  ;
+        dataPacket.batteryVoltage   = 3.33  ;
+        dataPacket.descentSpeed     = 0     ;
+        dataPacket.TEAM_ID          = 1152  ;
         // dataPacket.package_number = 4;
-        dataPacket.latitude = 2;
-        dataPacket.longtitude = 5;
+        dataPacket.latitude         = 2     ;
+        dataPacket.longtitude       = 5     ;
         
         
         afterReading = millis(); 
-
-        RemainTime = afterReading - beforeReading;
+        RemainTime   = afterReading - beforeReading;
         //dataPacket.Interval= 1000-RemainTime;
         dataPacket.Interval = 700;
         // sendTelemetries();
@@ -503,8 +439,8 @@ void Communucation::getDatas(void)
                 // SendingStringBuffer[0] = '\0';
             }
         }
-        ACKPacket.ACKType = 2; // Just make ACK Type 2 (END SIGNAL) 
-        ACKPacket.ACK     = 3;
+        ACKPacket.ACKType = ACKType_END; // Just make ACK Type 2 (END SIGNAL) 
+        ACKPacket.ACK     = ACK_END_SIGNAL;
         sendACK();
         
         // Serial.write("E\n"); // communucation ENDED Message.
@@ -542,7 +478,7 @@ void Communucation::mainLp(void)
         if (LenBuff > 0)
         {
             // START_READED = true;
-            controlVar.FLAGS.startReaded = 1;
+            controlVar.FLAGS.startReaded = TRUE;
             // Serial.println("STarted babba..");
             // for (uint8_t i = 0 ; i < 4 ; i++)
             // {
@@ -558,7 +494,7 @@ void Communucation::mainLp(void)
             if (STARTS_BUF[0] == 5) // STARTS COMMAND..
             {
                 // systemActivated = true;
-                controlVar.FLAGS.systemActivated = 1;
+                controlVar.FLAGS.systemActivated = TRUE;
                 /* ! Newly Added ! Purpose : When the command come from GCS,
                         Direcly make the calibration ESC! 
                         Verified-TESTED : NONE */
@@ -641,74 +577,48 @@ void Communucation::mainLp(void)
 
 void Communucation::getProtocolStatus(void)
 {
-    // if (Buffer[0]  == NOTHING_MISSED_H)
-    // {    
-    //     HEADER = NOTHING_MISSED_H;
-    //     memcpy(&gcsPacket,  Buffer , 2); // BU BURDA OLMAMALI
 
-    // } 
-    // else if (Buffer[0] == MISSED_DATA_AV_H)
-    // {
-    //     HEADER = MISSED_DATA_AV_H;
-    //     memcpy(&gcsPacket,  Buffer , 2); // BU BURDA OLMAMALI
-    // }
-    // else if (Buffer[0] == VIDEO_SIZE_H) 
-    // {
-    //     HEADER = VIDEO_SIZE_H;
-    //     memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket)); // BU BURDA OLMAMALI
-    // }
-    // else if (Buffer[0] == VIDEO_DATA_H)
-    // {   
-    //     HEADER = VIDEO_DATA_H;
-    //     memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket)); // BU BURDA OLMAMALI
-    // }
-    // else
-    // {
-    //     HEADER = ERROR_H;
-    // }
     switch (Buffer[0])
     {
         case NOTHING_MISSED_H:
-            HEADER = NOTHING_MISSED_H;
-            MAX_GCS_BYTES = 2;
+            HEADER          = NOTHING_MISSED_H  ;
+            MAX_GCS_BYTES   = GCS_Pckt_Normal   ;
             // memcpy(&gcsPacket,  Buffer , 2); // BU BURDA OLMAMALI
             break;
         case MISSED_DATA_AV_H:
-            HEADER = MISSED_DATA_AV_H;
-            MAX_GCS_BYTES = 2;
+            HEADER          = MISSED_DATA_AV_H  ;
+            MAX_GCS_BYTES   = GCS_Pckt_Normal   ;
             // memcpy(&gcsPacket,  Buffer , 2); // BU BURDA OLMAMALI
             break;
         case VIDEO_SIZE_H:
-            HEADER = VIDEO_SIZE_H;
-            MAX_GCS_BYTES = 104;
+            HEADER          = VIDEO_SIZE_H      ;
+            MAX_GCS_BYTES   = GCS_Pcket_VIDEO   ;
             // memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket)); // BU BURDA OLMAMALI
             break;
         case VIDEO_DATA_H:
-            HEADER = VIDEO_DATA_H;
-            MAX_GCS_BYTES = 104;
+            HEADER          = VIDEO_DATA_H    ;
+            MAX_GCS_BYTES   = GCS_Pcket_VIDEO ;
             // memcpy(&gcsPacket,  Buffer , sizeof(gcsPacket)); // BU BURDA OLMAMALI
             break;    
         default:
-            HEADER = ERROR_H;
+            HEADER  = ERROR_H;
             break;
     }
 }
 void Communucation::stringCopies(void)
 {
-    // strcpy(data.FLIGHT_STATUS, "WAITING");
-    // strcpy(data.VIDEO_TRANSMISSION_INFO, "HAYIR");
 
+    dataPacket.FrameType               = DataFrameHeader; // Says its DataFrame  Normally 0 I Changed // 0xBB 
+    ACKPacket.FrameType                = ACKFrameHeader; // ACK Frame // Normally 1 I changed to // 0xCC
+    gcsPacket.bufferArray[0]           = '\0';
+    dataPacket.FLIGHT_STATUS           = STAT_FLIGHTFALL; // Normally 0 
 
-    dataPacket.FrameType     = 0xBB; // Says its DataFrame  Normally 0 I Changed // 0xBB 
-    ACKPacket.FrameType      = 0xCC; // ACK Frame // Normally 1 I changed to // 0xCC
-    gcsPacket.bufferArray[0] = '\0';
-    dataPacket.FLIGHT_STATUS = 3; // Normally 0 
-    dataPacket.VIDEO_TRANSMISSION_INFO = 5; // Normally 0
-    dataPacket.package_number = 1;
+    dataPacket.VIDEO_TRANSMISSION_INFO = TRANSFER_NOT_COMPLETED; // Normally 0
+    dataPacket.package_number          = 1;
     
-    ACKPacket.ACKType = 3; // First None
-    ACKPacket.ACK = 4;      //first none
-    controlVar.resetFlag = FALSE;
+    ACKPacket.ACKType     = ACKType_NONE ;       // First None
+    ACKPacket.ACK         = ACK_NONE     ;      //first none
+    controlVar.resetFlag  = 0            ;
 }
 void Communucation::sendTelemetries(void)
 {
@@ -724,7 +634,7 @@ void Communucation::sendTelemetries(void)
     // Serial.printf("%.2f",sensors.gpsData.altitude);Serial.printf(",");
     // Serial.printf("%s",data.FLIGHT_STATUS);Serial.printf(",");
     // Serial.printf("%.2f",sensors.mpuData.pitch);Serial.printf(",");Serial.printf("%.2f",sensors.mpuData.roll);Serial.printf(",");
-    // Serial.printf("%.2f",sensors.mpuData.yaw);Serial.printf(",");Serial.printf("%.2f", data.turn_number);Serial.printf(",");
+    // Serial.printf("%.2f",sensors.mpuData.yaw);Serial.printf(",");Serial.printf("%.2f", dataPacket.turn_number);Serial.printf(",");
     // Serial.printf("%s",data.VIDEO_TRANSMISSION_INFO);
     // Serial.printf(">\n");
 
@@ -738,7 +648,7 @@ void Communucation::saveTelemetries(void){
 //   TEAM_ID,package_number,sensors.gpsData.day,sensors.gpsData.month,sensors.gpsData.year,sensors.gpsData.hour,sensors.gpsData.minute,sensors.gpsData.second,
 //   sensors.bmpData.pressure,sensors.bmpData.altitude,abs(sensors.prevAltitude - sensors.bmpData.altitude),sensors.bmpData.temperature,data.batteryVoltage,
 //   sensors.gpsData.latitude,sensors.gpsData.longitude,sensors.gpsData.altitude,data.FLIGHT_STATUS,sensors.mpuData.pitch,sensors.mpuData.roll,sensors.mpuData.yaw,
-//   data.turn_number,data.VIDEO_TRANSMISSION_INFO
+//   dataPacket.turn_number,data.VIDEO_TRANSMISSION_INFO
 //   );
 //   storage.writeTelemetry(SD,telemetryBuffer);
 }

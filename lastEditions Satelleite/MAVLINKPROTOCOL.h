@@ -10,26 +10,7 @@
 
 #define MAX_TELEMETRY_LENGTH 2 // 2kb is probably too much but anyways. I don't wanna fail because of this in tests
 
-class DATACLASS
-{
-    public:
-       
-        
-       
-        char FLIGHT_STATUS[21];
-        char VIDEO_TRANSMISSION_INFO[6];
-        
 
-        float altitude;   // Yukseklik
-        float pressure ;   //Basınç
-        float temperature ; //Sıcaklık
-        float turn_number ; // Dönüş Sayısı
-        float pitch ; // Pitch
-        float yaw ; // Yaw
-        float roll; // Roll
-        float batteryVoltage = 3.33;
-        DATACLASS();
-};
 class OLDDATACLASS
 {
     public:
@@ -59,16 +40,13 @@ class Communucation
     public:
         // SENSORS sensors = SENSORS();
         // STORAGE storage = STORAGE();
-        uint16_t package_number = 1; // Paket Numarası Normal counter gibi..
-        const uint16_t TEAM_ID = 29779; // Takım Numarası
-
-
-        OLDDATACLASS old_datas =  OLDDATACLASS(); // Eski dataları tuttuğumuz class.
-        DATACLASS data = DATACLASS();           // Normla dataları tuttuğumuz class.
+        uint16_t package_number = 1     ; // Paket Numarası Normal counter gibi..
+        const uint16_t TEAM_ID  = 29779 ; // Takım Numarası
+        OLDDATACLASS old_datas  =  OLDDATACLASS(); // Eski dataları tuttuğumuz class.
         
         // const unsigned long interval = 3000; Normally 800 falan olmalı1!!
-        const uint16_t oneHzInterval = 1000;
-        unsigned long oneHZ ;
+        const uint16_t oneHzInterval = 1000 ;
+        unsigned long oneHZ                 ;
 
 
 
@@ -79,26 +57,17 @@ class Communucation
         // bool manualMotorActive = false;
         // bool fixAltitude = false;
         // bool fixAltTrueBefore = false;
-        const uint16_t testMotorsInterval = 10000;
-        unsigned long motorElapsedTime ; 
+        const uint16_t testMotorsInterval = 10000 ;
+        unsigned long motorElapsedTime            ; 
         
-        uint16_t COMMAND = 0;
-        // bool systemActivated= false;
-        uint16_t bufferCt = 0;
+        uint16_t COMMAND      = 0   ;
+        uint16_t bufferCt     = 0   ;
+        uint8_t MAX_GCS_BYTES = 0   ;
 
 
-        
-        uint8_t Buffer[100];
-        uint8_t MAX_GCS_BYTES = 0;
-
-     
-        const char DELIM[1] = {' '};
-        // bool Readed = false;
-
-        uint16_t INTERV ;
-       
-
-        int VID_LENGTH_CHCK_S;
+        uint8_t Buffer[100]         ;
+        uint16_t INTERV             ;
+        int VID_LENGTH_CHCK_S       ;
 
 
 
@@ -218,20 +187,26 @@ class Communucation
 
             struct 
             {
-                uint8_t Readed              : 1 ;
-                uint8_t protocolReaded      : 1 ;
-                uint8_t systemActivated     : 1 ;
-
-                uint8_t startReaded         : 1 ;
-                uint8_t fixAltitude         : 1 ;
-                uint8_t fixAltitudeBefore   : 1 ;
-                uint8_t seperatedBefore     : 1 ;
+                uint8_t Readed                  : 1 ;
+                uint8_t protocolReaded          : 1 ;
+                uint8_t systemActivated         : 1 ;
+     
+                uint8_t startReaded             : 1 ;
+                uint8_t fixAltitude             : 1 ;
+                uint8_t fixAltitudeBefore       : 1 ;
+                uint8_t seperatedBefore         : 1 ;
                 
-                uint8_t manupulationFalling : 1 ; 
+                uint8_t manupulationFalling     : 1 ; 
 
+                uint8_t videoTransferCompleted  : 1 ;
+
+                uint8_t videoSizeTransferred    : 1 ;
+                /* Total 9 bit. -7 Bit UNUSED!-
+                            We can Use Later!*/
+                                
             }FLAGS;
             
-            uint8_t resetFlag;
+            uint16_t resetFlag;
             
         }controlVar = {.resetFlag = 0};
 
@@ -245,21 +220,18 @@ class Communucation
         // struct GCSFrame gcsPacket   ;
 
         // dataPacket.FrameType     = 0; // Says its DataFrame 
-        // ACKPacket.FrameType      = 1; // ACK Frame
-        // gcsPacket.bufferArray[0] = '\0';
-        
-        //uint16_t ReachedByte = 0;
-        unsigned long REACHED_SIZE = 0;
-        unsigned long VIDEO_SIZE = 10000000;
-        bool videoTransferCompleted = false;
+   
+
+        unsigned long REACHED_SIZE = 0        ;
+        unsigned long VIDEO_SIZE   = 10000000 ;
         
 
-        unsigned long beforeReading;
-        unsigned long afterReading;
-        unsigned long RemainTime;
+        unsigned long beforeReading ;
+        unsigned long afterReading  ;
+        unsigned long RemainTime    ;
         
-        uint16_t CHCKSM;
-        uint16_t VIDEO_BIN_LENGHT;
+        uint16_t CHCKSM             ;
+        uint16_t VIDEO_BIN_LENGHT   ;
         // const char* udpAddress = "192.168.1.100"; // 192.168.1.7 works ?
         // const int udpPort = 3333;   
 
@@ -274,22 +246,67 @@ class Communucation
         // struct ACKFrame ACKPacket   ;
         // struct GCSFrame gcsPacket   ;
         
-        const uint8_t  pwmPin = 4;
-        char telemetryBuffer[MAX_TELEMETRY_LENGTH];
+        const uint8_t  pwmPin = 4                   ;
+        char telemetryBuffer[MAX_TELEMETRY_LENGTH]  ;
 
 
-        // WiFiUDP udp;
-        enum
+        enum // PACKAGE_ INFORMATIONS
         {
             NOTHING_MISSED_H    = 0,
             MISSED_DATA_AV_H    = 1,
             VIDEO_SIZE_H        = 2,
             VIDEO_DATA_H        = 3,
             ERROR_H             = 4
-        }HEADER = NOTHING_MISSED_H;
+        }/*HEADER = NOTHING_MISSED_H*/;
 
 
+        enum  // ACKTYPES
+        {
+            ACKType_VS   = 0,
+            ACKType_VID  = 1,
+            ACKType_END  = 2,
+            ACKType_NONE = 3
+        };
 
+        enum // ACK
+        {
+            ACK_UNSUCCESS  = 0,
+            ACK_SUCCESS    = 1,
+            ACK_VID_COMP   = 2,
+            ACK_VS_END     = 3,
+            ACK_END_SIGNAL = 3,
+            ACK_NONE       = 4
+        };
+
+        enum  // FLIGHT STATUS
+        {
+            STAT_WAITING     = 0,
+            STAT_RISING      = 1,
+            STAT_SEPERATING  = 2,
+            STAT_FLIGHTFALL  = 3,
+            STAT_PAYFALL     = 4,
+            STAT_FIXEDALT    = 5,
+            STAT_RESCUE      = 6
+        };
+        enum // VIDEO STATUS
+        {
+            TRANSFER_NOT_COMPLETED = 0 ,
+            TRANSFER_COMPLETED     = 1
+        };
+
+        enum  // Frame Headers
+        {
+            DataFrameHeader = 0xBB,
+            ACKFrameHeader  = 0xCC
+        };
+        
+        enum // GCS Package Size info
+        {
+            GCS_Pckt_Normal = 2,
+            GCS_Pcket_VIDEO = 104
+        };
+
+        uint8_t HEADER = NOTHING_MISSED_H; // HEADER OF PACKAGE
         
         Communucation();                    //constructor.
         
