@@ -81,7 +81,7 @@ void Communucation::readAltitude(void)
     {
         if (dataPacket.altitude > 798 && dataPacket.altitude < 802)
         {
-            controlVar.FLAGS.manupulationFalling = true;
+            controlVar.FLAGS.manupulationFalling = TRUE;
         }
         *(old_datas.altPtr-1) = dataPacket.altitude;
         dataPacket.altitude = dataPacket.altitude+2;
@@ -99,15 +99,12 @@ void Communucation::setNewStatus(void)
     if (package_number == 1 || (dataPacket.altitude >= 0 &&  dataPacket.altitude < 3) )
     {
         // ilk açıldığında ve yükseklik   =   0 <= yükseklik < 3
-        // strcpy(data.FLIGHT_STATUS,"WAITING");
         dataPacket.FLIGHT_STATUS  = STAT_WAITING;
     }
 
     else if (package_number != 1 && dataPacket.altitude > *(old_datas.altPtr-1) && dataPacket.altitude  >= 4)
     {
         // Şimdikik yükseklik  > önceki yükseklik ve  yükselik >= 4
-        
-        // strcpy(data.FLIGHT_STATUS,"RISING");
         dataPacket.FLIGHT_STATUS  = STAT_RISING;
     }
 
@@ -115,8 +112,6 @@ void Communucation::setNewStatus(void)
     {
         // 395<yükseklik<405 ve dahaönceAyrışmadıYSA
         // Ayrışma Mekanizmasını Devreye Sok.
-        
-        // strcpy(data.FLIGHT_STATUS,"SEPERATING");
         dataPacket.FLIGHT_STATUS            = STAT_SEPERATING    ;
         controlVar.FLAGS.seperatedBefore    = TRUE               ;
 
@@ -134,10 +129,6 @@ void Communucation::setNewStatus(void)
 
     else if (package_number != 1 && dataPacket.altitude < *(old_datas.altPtr-1) && controlVar.FLAGS.seperatedBefore)
     {
-        // Önceki yükselik > şimdiyükselik ve dahaönceAyrıştıysa.
-        //
-        
-        // strcpy(data.FLIGHT_STATUS,"PAYFALL");
         dataPacket.FLIGHT_STATUS  =  STAT_PAYFALL;
     }
 
@@ -392,8 +383,6 @@ void Communucation::getDatas(void)
         // Serial.printf("I %d", INTERV);
         // Serial.endPacket();
         bufferCt = 0;
-        // bool protocolReaded = false;
-        // uint8_t testVariable = 0;
         while (millis() - afterReading <  dataPacket.Interval )
         {   
             
@@ -405,7 +394,6 @@ void Communucation::getDatas(void)
                     if (!controlVar.FLAGS.protocolReaded) // Readed == 0b00000000
                     {
                         getProtocolStatus();
-                        // protocolReaded = true ; // Readed =  0b00000001
                         controlVar.FLAGS.protocolReaded = TRUE;
                         continue;
                     }
@@ -435,15 +423,12 @@ void Communucation::getDatas(void)
                     memset(gcsPacket.bufferArray , '\0',sizeof(gcsPacket.bufferArray));
                 }
                 sendACK();
-                // if (SendingStringBuffer[0] != '\0') Serial.write((const uint8_t *) SendingStringBuffer,strlen(SendingStringBuffer)); //we can use Serial.printf %s  ???
-                // SendingStringBuffer[0] = '\0';
             }
         }
         ACKPacket.ACKType = ACKType_END; // Just make ACK Type 2 (END SIGNAL) 
         ACKPacket.ACK     = ACK_END_SIGNAL;
         sendACK();
         
-        // Serial.write("E\n"); // communucation ENDED Message.
         package_number +=1;
         dataPacket.package_number += 1;
         if (COMMAND != 0)
@@ -459,35 +444,12 @@ void Communucation::mainLp(void)
     if (!controlVar.FLAGS.systemActivated)
     {
         static byte STARTS_BUF[3];
-        // static bool START_READED = false;
-        // static bool START_READED = true;
         controlVar.FLAGS.startReaded = 1;
         STARTS_BUF[0] = 5;
-        
-        // Serial.parsePacket();
         int LenBuff = Serial.readBytes(STARTS_BUF, 3);
-        // if (STARTS_BUF[0] == 2 )
-        // {
-        //     const uint8_t myArray[5] = {1,3,5,7,9};
-        //     Serial.write(myArray, sizeof(myArray));
-        // }
-        // Serial.write((const uint8_t * )STARTS_BUF , 1);
-        // Serial.print("Length is : : : ");
-        // Serial.print(LenBuff);
-        
         if (LenBuff > 0)
         {
-            // START_READED = true;
             controlVar.FLAGS.startReaded = TRUE;
-            // Serial.println("STarted babba..");
-            // for (uint8_t i = 0 ; i < 4 ; i++)
-            // {
-            //     // Serial.println(STARTS_BUF[i]);
-            // }
-            // if (STARTS_BUF[0] - '0' == 3)
-            // {
-            //     // Serial.println("Bu sekildeymis abi..");
-            // }
         }
         if (controlVar.FLAGS.startReaded)
         {
@@ -521,8 +483,6 @@ void Communucation::mainLp(void)
     }
     else
     {
-      // DO I add the sensor loop here? Maybe gps should be with the others? Maybe not?, Its just that gps update might need to be faster than 1Hz.
-        // sensors.flushGPSData(); //Gps Update
         getDatas();
         if (controlVar.FLAGS.fixAltitude) // false
         {
@@ -535,45 +495,11 @@ void Communucation::mainLp(void)
             }
             //Serial.println("-------------- IRTIFA SABITLEME TAMAMLANDI.-------------");
             controlVar.FLAGS.fixAltitude = FALSE;
-            // fixAltitude = false;
             // Set Motor Speed To Normal IN RIGHT HERE!!.
         }
     }
 }
 
-
-
-// void Communucation::subStr (void) 
-// {
-//     char* PT = Buffer;
-//     char* p = strtok_r(Buffer, DELIM,&PT); // DELIM GLOBALLY DEFINED.
-//     strcpy(TAG, p);
-//     uint8_t ct = 0;
-//     while (p != NULL)
-//     {
-//         if (ct == 3)
-//         {
-//             strcpy(Buffer, p);
-//             break;
-//         }
-//         switch (ct)
-//         {
-//         case 1:
-//             strcpy(CMMND, p);
-//             Serial.print("C_CPY,");
-//             break;
-//         case 2:
-//             strcpy(VIDEO_LNG, p);
-//             Serial.println("V_L_CP");
-//             break;
-//         default:
-//             break;
-//         }
-//         p = strtok_r(NULL, DELIM,&PT); // 
-//         ct++;
-//     }
-    
-// }
 
 void Communucation::getProtocolStatus(void)
 {
@@ -611,14 +537,14 @@ void Communucation::stringCopies(void)
     dataPacket.FrameType               = DataFrameHeader; // Says its DataFrame  Normally 0 I Changed // 0xBB 
     ACKPacket.FrameType                = ACKFrameHeader; // ACK Frame // Normally 1 I changed to // 0xCC
     gcsPacket.bufferArray[0]           = '\0';
-    dataPacket.FLIGHT_STATUS           = STAT_FLIGHTFALL; // Normally 0 
+    dataPacket.FLIGHT_STATUS           = STAT_FLIGHTFALL; 
 
-    dataPacket.VIDEO_TRANSMISSION_INFO = TRANSFER_NOT_COMPLETED; // Normally 0
+    dataPacket.VIDEO_TRANSMISSION_INFO = TRANSFER_NOT_COMPLETED; 
     dataPacket.package_number          = 1;
     
     ACKPacket.ACKType     = ACKType_NONE ;       // First None
     ACKPacket.ACK         = ACK_NONE     ;      //first none
-    controlVar.resetFlag  = 0            ;
+    controlVar.resetFlag  = RESET_FLAGS  ;
 }
 void Communucation::sendTelemetries(void)
 {

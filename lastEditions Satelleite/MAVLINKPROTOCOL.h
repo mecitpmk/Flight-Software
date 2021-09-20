@@ -1,8 +1,7 @@
-
-#ifndef MAVLINKPROTOCOL_H
-#define MAVLINKPROTOCOL_H
+#pragma once
 #include <Arduino.h>
 #include <string.h>
+#include "enums.h"
 // #include <WiFiUdp.h>
 // #include "SENSORS.h"
 // #include "STORAGE.h"
@@ -65,7 +64,7 @@ class Communucation
         uint8_t MAX_GCS_BYTES = 0   ;
 
 
-        uint8_t Buffer[100]         ;
+        uint8_t Buffer[MAX_GCS_PACKET]         ;
         uint16_t INTERV             ;
         int VID_LENGTH_CHCK_S       ;
 
@@ -93,7 +92,7 @@ class Communucation
 
             uint8_t bufferSize;      // For example video data is 11111 Buffer size will be = 5
             
-            uint8_t bufferArray[100]; // Max 500 Byte!
+            uint8_t bufferArray[MAX_GCS_PACKET]; // Max 500 Byte!
         }gcsPacket;
 
         /*
@@ -210,18 +209,6 @@ class Communucation
             
         }controlVar = {.resetFlag = 0};
 
-        
-        
-        
-        // Search for default parameeter for struct
-            // .FrameType = 0 gibi.
-        // struct dataFrame dataPacket ;
-        // struct ACKFrame ACKPacket   ;
-        // struct GCSFrame gcsPacket   ;
-
-        // dataPacket.FrameType     = 0; // Says its DataFrame 
-   
-
         unsigned long REACHED_SIZE = 0        ;
         unsigned long VIDEO_SIZE   = 10000000 ;
         
@@ -250,61 +237,7 @@ class Communucation
         char telemetryBuffer[MAX_TELEMETRY_LENGTH]  ;
 
 
-        enum // PACKAGE_ INFORMATIONS
-        {
-            NOTHING_MISSED_H    = 0,
-            MISSED_DATA_AV_H    = 1,
-            VIDEO_SIZE_H        = 2,
-            VIDEO_DATA_H        = 3,
-            ERROR_H             = 4
-        }/*HEADER = NOTHING_MISSED_H*/;
 
-
-        enum  // ACKTYPES
-        {
-            ACKType_VS   = 0,
-            ACKType_VID  = 1,
-            ACKType_END  = 2,
-            ACKType_NONE = 3
-        };
-
-        enum // ACK
-        {
-            ACK_UNSUCCESS  = 0,
-            ACK_SUCCESS    = 1,
-            ACK_VID_COMP   = 2,
-            ACK_VS_END     = 3,
-            ACK_END_SIGNAL = 3,
-            ACK_NONE       = 4
-        };
-
-        enum  // FLIGHT STATUS
-        {
-            STAT_WAITING     = 0,
-            STAT_RISING      = 1,
-            STAT_SEPERATING  = 2,
-            STAT_FLIGHTFALL  = 3,
-            STAT_PAYFALL     = 4,
-            STAT_FIXEDALT    = 5,
-            STAT_RESCUE      = 6
-        };
-        enum // VIDEO STATUS
-        {
-            TRANSFER_NOT_COMPLETED = 0 ,
-            TRANSFER_COMPLETED     = 1
-        };
-
-        enum  // Frame Headers
-        {
-            DataFrameHeader = 0xBB,
-            ACKFrameHeader  = 0xCC
-        };
-        
-        enum // GCS Package Size info
-        {
-            GCS_Pckt_Normal = 2,
-            GCS_Pcket_VIDEO = 104
-        };
 
         uint8_t HEADER = NOTHING_MISSED_H; // HEADER OF PACKAGE
         
@@ -327,7 +260,6 @@ class Communucation
         void manualServiceCheck(void);
         void manualmotorActivation(bool fortesting);
         void getDatas(void);
-        // void subStr (void); // STR COMES FROM BUFFER ! .
         void sendTelemetries(void);
         void getProtocolStatus(void);
         void saveTelemetries(void);
@@ -335,4 +267,4 @@ class Communucation
         
 
 }; 
-#endif
+
