@@ -47,15 +47,6 @@ class Communucation
         const uint16_t oneHzInterval = 1000 ;
         unsigned long oneHZ                 ;
 
-
-
-        // bool manupulationFalling = false;
-
-        // bool seperatedBefore = false;
-        // bool releaseCommand = false;
-        // bool manualMotorActive = false;
-        // bool fixAltitude = false;
-        // bool fixAltTrueBefore = false;
         const uint16_t testMotorsInterval = 10000 ;
         unsigned long motorElapsedTime            ; 
         
